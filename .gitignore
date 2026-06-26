@@ -1,0 +1,14 @@
+node_modules/
+.pnpm-store/
+dist/
+outputs/
+work/
+.codex/
+.agents/
+
+.env
+.env.*
+
+*.log
+*.tmp
+_tmp_*
