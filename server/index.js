@@ -1,7 +1,7 @@
 import express from "express";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { analyzeText } from "./analyzer.js";
+import { analyzeText, generateQuestions } from "./analyzer.js";
 
 const app = express();
 const port = Number(process.env.PORT || 3001);
@@ -19,11 +19,22 @@ app.post("/api/analyze", (request, response) => {
   const paragraph = String(request.body?.paragraph || "").trim();
 
   if (paragraph.length < 20) {
-    response.status(400).json({ message: "Analiz için en az 20 karakterlik bir paragraf gir." });
+    response.status(400).json({ message: "İşlem için en az 20 karakterlik bir paragraf gir." });
     return;
   }
 
   response.json(analyzeText(paragraph));
+});
+
+app.post("/api/questions", (request, response) => {
+  const paragraph = String(request.body?.paragraph || "").trim();
+
+  if (paragraph.length < 20) {
+    response.status(400).json({ message: "Soru üretmek için en az 20 karakterlik bir paragraf gir." });
+    return;
+  }
+
+  response.json(generateQuestions(paragraph));
 });
 
 app.use(express.static(distPath));
@@ -33,5 +44,5 @@ app.get(/^(?!\/api).*/, (request, response) => {
 });
 
 app.listen(port, "0.0.0.0", () => {
-  console.log(`Paragraf Analiz Asistanı hazır: http://127.0.0.1:${port}`);
+  console.log(`Paragraf Soru Asistanı hazır: http://127.0.0.1:${port}`);
 });

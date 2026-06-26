@@ -5,10 +5,9 @@ import {
   Brain,
   CheckCircle2,
   ClipboardList,
-  FileText,
-  Gauge,
+  Eye,
+  EyeOff,
   Hash,
-  Languages,
   Lightbulb,
   Loader2,
   PenLine,
@@ -19,14 +18,13 @@ import {
 import "./styles.css";
 
 const sampleParagraph =
-  "Binlerce yıl önce yaşayan insanlar, bazı taşların diğerlerinden farklı olduğunu fark etmişti. Kimi taşlar güneş ışığında parlıyor, kimileri olağanüstü renklere sahip oluyor, bazıları ise nadir bulunuyordu. Antik Mısır'dan Mezopotamya'ya, Çin'den Anadolu'ya kadar birçok medeniyet, taşların yalnızca süs eşyası olmadığını düşünüyordu. Krallar, savaşçılar, din adamları ve şifacılar belirli taşları koruyucu bir güç olarak taşıyorlardı.";
+  "Dünya, üzerinde bulunan canlı ve cansız varlıklar ile bunların ilişkilerinden meydana gelen büyük bir ekosistemden oluşur. İnsanoğlu bu ekosistemin etkin bir parçasıdır. Ancak aynı zamanda ekosistemin en önemli tehdit kaynaklarından biri de insandır. Çeşitli görüşlere göre 4,5 milyar yaşında olan Dünya'mızda bugüne kadar yaşanan doğal afetler neticesinde yaşamsal varlıkların 5 kez yok olduğu, günümüzde ise 6. yok oluşun başladığı ileri sürülmektedir. Türlerin yok oluş hızını değerlendiren uzmanlara göre insanoğlu bu yok oluşun temel sebebidir.";
 
-const analysisCards = [
-  { key: "konu", title: "Konu", icon: BookOpenText },
-  { key: "anaFikir", title: "Ana fikir", icon: Target },
-  { key: "yardimciFikirler", title: "Yardımcı fikirler", icon: Lightbulb },
-  { key: "ozet", title: "Özet", icon: FileText },
-  { key: "baslikOnerileri", title: "Başlık önerileri", icon: PenLine },
+const overviewItems = [
+  { key: "topic", title: "Konu", icon: BookOpenText },
+  { key: "mainIdea", title: "Ana fikir", icon: Target },
+  { key: "textType", title: "Anlatım biçimi", icon: PenLine },
+  { key: "suggestedTitle", title: "Başlık önerisi", icon: Lightbulb },
 ];
 
 function StatCard({ label, value, icon: Icon }) {
@@ -41,31 +39,79 @@ function StatCard({ label, value, icon: Icon }) {
   );
 }
 
-function ResultCard({ item, value }) {
+function OverviewCard({ item, value }) {
   const Icon = item.icon;
-  const listValue = Array.isArray(value) ? value : null;
 
   return (
-    <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-      <div className="mb-3 flex items-center gap-3">
-        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-cyan-50 text-cyan-700">
-          <Icon size={20} />
+    <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-950">
+        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-emerald-50 text-emerald-700">
+          <Icon size={17} />
         </span>
-        <h2 className="text-base font-semibold text-slate-950">{item.title}</h2>
+        {item.title}
       </div>
-      {listValue ? (
-        <ul className="space-y-2 text-sm leading-6 text-slate-700">
-          {listValue.map((entry) => (
-            <li className="flex gap-2" key={entry}>
-              <CheckCircle2 className="mt-1 h-4 w-4 shrink-0 text-emerald-600" />
-              <span>{entry}</span>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className="text-sm leading-6 text-slate-700">{value}</p>
-      )}
+      <p className="text-sm leading-6 text-slate-700">{value}</p>
     </section>
+  );
+}
+
+function QuestionCard({ question, revealAll }) {
+  const [isVisible, setIsVisible] = useState(false);
+  const showAnswer = revealAll || isVisible;
+
+  return (
+    <article className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <span className="inline-flex rounded-md bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-800">
+            {question.type}
+          </span>
+          <h3 className="mt-3 text-base font-semibold leading-7 text-slate-950">{question.question}</h3>
+        </div>
+        <button
+          className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-lg border border-slate-200 px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+          onClick={() => setIsVisible((current) => !current)}
+          type="button"
+        >
+          {showAnswer ? <EyeOff size={16} /> : <Eye size={16} />}
+          {showAnswer ? "Gizle" : "Cevabı göster"}
+        </button>
+      </div>
+
+      <div className="grid gap-2">
+        {question.options.map((option) => {
+          const isCorrect = showAnswer && option.key === question.correctKey;
+
+          return (
+            <div
+              className={`flex gap-3 rounded-lg border px-3 py-3 text-sm leading-6 transition ${
+                isCorrect ? "border-emerald-300 bg-emerald-50 text-emerald-950" : "border-slate-200 bg-slate-50 text-slate-700"
+              }`}
+              key={option.key}
+            >
+              <span
+                className={`grid h-7 w-7 shrink-0 place-items-center rounded-md text-xs font-bold ${
+                  isCorrect ? "bg-emerald-600 text-white" : "bg-white text-slate-700"
+                }`}
+              >
+                {option.key}
+              </span>
+              <span>{option.text}</span>
+            </div>
+          );
+        })}
+      </div>
+
+      {showAnswer ? (
+        <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 p-4">
+          <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-emerald-900">
+            <CheckCircle2 size={17} />
+            Doğru cevap: {question.correctKey}
+          </div>
+          <p className="text-sm leading-6 text-emerald-950">{question.explanation}</p>
+        </div>
+      ) : null}
+    </article>
   );
 }
 
@@ -75,52 +121,10 @@ function EmptyState() {
       <span className="mb-4 grid h-14 w-14 place-items-center rounded-lg bg-amber-50 text-amber-700">
         <Sparkles size={26} />
       </span>
-      <h2 className="text-lg font-semibold text-slate-950">Analiz sonucu burada görünecek</h2>
+      <h2 className="text-lg font-semibold text-slate-950">Sorular burada hazırlanacak</h2>
       <p className="mt-2 max-w-md text-sm leading-6 text-slate-600">
-        Paragrafı yazıp analiz ettiğinde anlam analizi ve dil bilgisi çözümlemesi ayrı sekmelerde hazırlanır.
+        Paragrafı ekleyip soruları hazırladığında konu, ana fikir, çıkarım, söylenemez ve anlatım biçimi gibi soru türleri oluşur.
       </p>
-    </section>
-  );
-}
-
-function GrammarTable({ rows }) {
-  return (
-    <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
-      <div className="border-b border-slate-200 bg-slate-50 px-5 py-4">
-        <h2 className="text-base font-semibold text-slate-950">Dil bilgisi analizi</h2>
-      </div>
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[720px] border-collapse text-left text-sm">
-          <thead className="bg-white text-xs uppercase tracking-normal text-slate-500">
-            <tr>
-              <th className="border-b border-slate-200 px-5 py-3 font-semibold">Kelime türü</th>
-              <th className="border-b border-slate-200 px-5 py-3 font-semibold">Bulunan kelimeler</th>
-              <th className="border-b border-slate-200 px-5 py-3 font-semibold">Açıklama</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row) => (
-              <tr className="align-top odd:bg-slate-50/60" key={row.key}>
-                <td className="w-48 border-b border-slate-100 px-5 py-4 font-semibold text-slate-950">{row.label}</td>
-                <td className="border-b border-slate-100 px-5 py-4 text-slate-700">
-                  {row.words.length > 0 ? (
-                    <div className="flex flex-wrap gap-2">
-                      {row.words.map((word) => (
-                        <span className="rounded-md bg-cyan-50 px-2.5 py-1 text-xs font-medium text-cyan-800" key={word}>
-                          {word}
-                        </span>
-                      ))}
-                    </div>
-                  ) : (
-                    <span className="text-slate-400">Tespit edilmedi</span>
-                  )}
-                </td>
-                <td className="border-b border-slate-100 px-5 py-4 leading-6 text-slate-600">{row.explanation}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
     </section>
   );
 }
@@ -128,9 +132,9 @@ function GrammarTable({ rows }) {
 function App() {
   const [paragraph, setParagraph] = useState("");
   const [result, setResult] = useState(null);
-  const [activeTab, setActiveTab] = useState("analysis");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [revealAll, setRevealAll] = useState(false);
 
   const stats = useMemo(() => {
     const words = paragraph.trim().split(/\s+/).filter(Boolean);
@@ -138,12 +142,13 @@ function App() {
     return { words: words.length, sentences: sentences.length, chars: paragraph.trim().length };
   }, [paragraph]);
 
-  async function analyzeParagraph() {
+  async function generateQuestionSet() {
     setError("");
     setIsLoading(true);
+    setRevealAll(false);
 
     try {
-      const response = await fetch("/api/analyze", {
+      const response = await fetch("/api/questions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ paragraph }),
@@ -151,11 +156,10 @@ function App() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || "Analiz sırasında bir sorun oluştu.");
+        throw new Error(data.message || "Sorular hazırlanırken bir sorun oluştu.");
       }
 
       setResult(data);
-      setActiveTab("analysis");
     } catch (currentError) {
       setError(currentError.message);
     } finally {
@@ -168,20 +172,20 @@ function App() {
       <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col px-4 py-5 sm:px-6 lg:px-8">
         <header className="flex flex-col gap-4 border-b border-slate-200 pb-5 md:flex-row md:items-center md:justify-between">
           <div>
-            <p className="mb-2 inline-flex items-center gap-2 rounded-full bg-cyan-50 px-3 py-1 text-xs font-semibold text-cyan-800">
+            <p className="mb-2 inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800">
               <Brain size={14} />
-              Türkçe paragraf analiz aracı
+              Türkçe paragraf soru hazırlama aracı
             </p>
-            <h1 className="text-2xl font-bold tracking-normal text-slate-950 sm:text-3xl">Paragraf Analiz Asistanı</h1>
+            <h1 className="text-2xl font-bold tracking-normal text-slate-950 sm:text-3xl">Paragraf Soru Asistanı</h1>
           </div>
           <div className="grid grid-cols-3 gap-2 text-sm">
             <StatCard icon={Hash} label="Kelime" value={stats.words} />
             <StatCard icon={ClipboardList} label="Cümle" value={stats.sentences} />
-            <StatCard icon={Gauge} label="Karakter" value={stats.chars} />
+            <StatCard icon={BookOpenText} label="Karakter" value={stats.chars} />
           </div>
         </header>
 
-        <div className="grid flex-1 gap-6 py-6 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+        <div className="grid flex-1 gap-6 py-6 lg:grid-cols-[minmax(0,0.88fr)_minmax(0,1.12fr)]">
           <section className="flex flex-col rounded-lg border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
             <div className="mb-4 flex items-center justify-between gap-3">
               <h2 className="text-base font-semibold text-slate-950">Paragraf</h2>
@@ -195,74 +199,52 @@ function App() {
               </button>
             </div>
             <textarea
-              className="min-h-[410px] flex-1 resize-none rounded-lg border border-slate-200 bg-slate-50 p-4 text-base leading-7 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-cyan-500 focus:bg-white focus:ring-4 focus:ring-cyan-100"
+              className="min-h-[430px] flex-1 resize-none rounded-lg border border-slate-200 bg-slate-50 p-4 text-base leading-7 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100"
               onChange={(event) => setParagraph(event.target.value)}
-              placeholder="Analiz etmek istediğin paragrafı buraya yapıştır..."
+              placeholder="Soru hazırlamak istediğin paragrafı buraya yapıştır..."
               value={paragraph}
             />
             {error ? <p className="mt-3 text-sm font-medium text-red-600">{error}</p> : null}
             <button
               className="mt-4 inline-flex h-12 items-center justify-center gap-2 rounded-lg bg-slate-950 px-5 text-base font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-400"
               disabled={isLoading || paragraph.trim().length < 20}
-              onClick={analyzeParagraph}
+              onClick={generateQuestionSet}
               type="button"
             >
               {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Sparkles size={20} />}
-              Analiz Et
+              Soruları Hazırla
             </button>
           </section>
 
           <section className="min-w-0">
             {result ? (
               <div className="space-y-4">
-                <div className="inline-flex rounded-lg border border-slate-200 bg-white p-1 shadow-sm">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <h2 className="text-lg font-semibold text-slate-950">Hazırlanan soru seti</h2>
+                    <p className="mt-1 text-sm text-slate-600">{result.questions.length} soru oluşturuldu.</p>
+                  </div>
                   <button
-                    className={`inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-semibold transition ${
-                      activeTab === "analysis" ? "bg-slate-950 text-white" : "text-slate-600 hover:bg-slate-50"
-                    }`}
-                    onClick={() => setActiveTab("analysis")}
+                    className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
+                    onClick={() => setRevealAll((current) => !current)}
                     type="button"
                   >
-                    <BookOpenText size={16} />
-                    Paragraf analizi
-                  </button>
-                  <button
-                    className={`inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-semibold transition ${
-                      activeTab === "grammar" ? "bg-slate-950 text-white" : "text-slate-600 hover:bg-slate-50"
-                    }`}
-                    onClick={() => setActiveTab("grammar")}
-                    type="button"
-                  >
-                    <Languages size={16} />
-                    Dil bilgisi analizi
+                    {revealAll ? <EyeOff size={16} /> : <Eye size={16} />}
+                    {revealAll ? "Tüm cevapları gizle" : "Tüm cevapları göster"}
                   </button>
                 </div>
 
-                {activeTab === "analysis" ? (
-                  <>
-                    <div className="grid gap-4 sm:grid-cols-2">
-                      {analysisCards.map((item) => (
-                        <ResultCard item={item} key={item.key} value={result[item.key]} />
-                      ))}
-                    </div>
-                    <div className="grid gap-3 sm:grid-cols-3">
-                      <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-                        <span className="text-xs font-medium text-slate-500">Anahtar kelimeler</span>
-                        <p className="mt-2 text-sm font-semibold text-slate-800">{result.anahtarKelimeler.join(", ") || "Yok"}</p>
-                      </div>
-                      <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-                        <span className="text-xs font-medium text-slate-500">Metin türü</span>
-                        <p className="mt-2 text-sm font-semibold text-slate-800">{result.metinTuru}</p>
-                      </div>
-                      <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-                        <span className="text-xs font-medium text-slate-500">Zorluk seviyesi</span>
-                        <p className="mt-2 text-sm font-semibold text-slate-800">{result.zorlukSeviyesi}</p>
-                      </div>
-                    </div>
-                  </>
-                ) : (
-                  <GrammarTable rows={result.dilBilgisi} />
-                )}
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {overviewItems.map((item) => (
+                    <OverviewCard item={item} key={item.key} value={result.overview[item.key]} />
+                  ))}
+                </div>
+
+                <div className="space-y-4">
+                  {result.questions.map((question) => (
+                    <QuestionCard key={question.id} question={question} revealAll={revealAll} />
+                  ))}
+                </div>
               </div>
             ) : (
               <EmptyState />

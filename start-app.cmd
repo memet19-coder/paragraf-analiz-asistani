@@ -6,7 +6,7 @@ set "NODE_DIR=C:\Users\novar\.cache\codex-runtimes\codex-primary-runtime\depende
 set "PNPM_CMD=C:\Users\novar\.cache\codex-runtimes\codex-primary-runtime\dependencies\bin\pnpm.cmd"
 set "PATH=%NODE_DIR%;%PATH%"
 
-echo Paragraf Analiz Asistani baslatiliyor...
+echo Paragraf Soru Asistani baslatiliyor...
 echo Tarayicida acilacak adres: http://127.0.0.1:5173
 echo Bu pencere acik kaldigi surece uygulama calisir.
 echo.

@@ -27,124 +27,24 @@ const STOP_WORDS = new Set([
   "sonra",
   "ve",
   "veya",
-  "yok",
-  "oluş",
-  "oluşun",
-  "kez",
   "göre",
+  "kadar",
   "bugüne",
   "günümüzde",
   "ileri",
   "sürülmektedir",
 ]);
 
-const PRONOUNS = new Set([
-  "ben",
-  "sen",
-  "o",
-  "biz",
-  "siz",
-  "onlar",
-  "bana",
-  "sana",
-  "ona",
-  "bize",
-  "size",
-  "onlara",
-  "beni",
-  "seni",
-  "onu",
-  "bizi",
-  "sizi",
-  "onları",
-  "bu",
-  "şu",
-  "o",
-  "bunlar",
-  "şunlar",
-  "kim",
-  "ne",
-  "hangi",
-  "kendisi",
-]);
-
-const CONJUNCTIONS = new Set([
-  "ve",
-  "ile",
-  "ama",
-  "fakat",
-  "ancak",
-  "çünkü",
-  "zira",
-  "veya",
-  "ya da",
-  "hem",
-  "ne var ki",
-  "oysa",
-  "oysa ki",
-]);
-
-const POSTPOSITIONS = new Set([
-  "gibi",
-  "kadar",
-  "için",
-  "üzere",
-  "diye",
-  "rağmen",
-  "karşı",
-  "doğru",
-  "beri",
-  "önce",
-  "sonra",
-  "dolayı",
-  "ötürü",
-  "dair",
-  "göre",
-]);
-
-const COMMON_ADJECTIVES = new Set([
-  "büyük",
-  "küçük",
-  "eski",
-  "yeni",
-  "farklı",
-  "önemli",
-  "değerli",
-  "parlak",
-  "nadir",
-  "olağanüstü",
-  "doğru",
-  "yanlış",
-  "düzenli",
-  "geniş",
-  "güçlü",
-  "zayıf",
-  "kültürel",
-  "sembolik",
-  "koruyucu",
-]);
-
-const COMMON_ADVERBS = new Set([
-  "çok",
-  "az",
-  "daha",
-  "en",
-  "hemen",
-  "bugün",
-  "eskiden",
-  "sonra",
-  "önce",
-  "hızlıca",
-  "yavaşça",
-  "sıkça",
-  "bazen",
-  "daima",
-  "özellikle",
-]);
+const TEXT_TYPES = [
+  "Açıklayıcı anlatım",
+  "Tartışmacı anlatım",
+  "Öyküleyici anlatım",
+  "Betimleyici anlatım",
+];
 
 const TOPIC_PROFILES = [
   {
-    score: [
+    terms: [
       "dünya",
       "ekosistem",
       "canlı",
@@ -157,149 +57,121 @@ const TOPIC_PROFILES = [
       "tür",
       "yaşamsal",
     ],
-    topic:
-      "Dünya ekosisteminde insanın yeri ve insan faaliyetlerinin canlı yaşamı üzerindeki yıkıcı etkileri",
+    topic: "Dünya ekosisteminde insanın yeri ve ekolojik dengeye etkisi",
     mainIdea:
       "İnsan, Dünya ekosisteminin bir parçası olmasına rağmen canlı türlerinin yok oluşunu hızlandıran en önemli tehdit kaynaklarından biri hâline gelmiştir.",
-    supportingIdeas: [
-      "Dünya, canlı ve cansız varlıkların birbiriyle ilişkili olduğu büyük bir ekosistem olarak ele alınmaktadır.",
-      "İnsan bu ekosistemin etkin bir parçasıdır; ancak aynı zamanda ekosisteme zarar veren başlıca unsurlardan biridir.",
-      "Uzmanlara göre günümüzde yaşanan tür kayıplarında insan etkisi belirleyici bir rol oynamaktadır.",
-    ],
-    summary:
-      "Paragraf, Dünya’nın canlı ve cansız varlıkların ilişkileriyle oluşan büyük bir ekosistem olduğunu anlatır. İnsan bu sistemin bir parçası olsa da doğal dengeyi bozan, türlerin yok oluş hızını artıran ve yeni bir yok oluş sürecini başlatan temel etkenlerden biri olarak gösterilir.",
-    titles: [
-      "Dünya Ekosisteminde İnsan Etkisi",
-      "Altıncı Yok Oluş ve İnsan",
-      "Ekosistemin En Büyük Tehdidi",
+    title: "Dünya Ekosisteminde İnsan Etkisi",
+    textType: "Açıklayıcı anlatım",
+    said:
+      "İnsan hem ekosistemin etkin bir parçasıdır hem de ekosistemi tehdit eden önemli unsurlardan biridir.",
+    notSaid:
+      "Metinde insanların doğal afetleri tamamen engellediği ve ekosistemi bütünüyle koruduğu belirtilmiştir.",
+    inference:
+      "İnsan faaliyetleri, doğal dengenin bozulmasında ve tür kayıplarının hızlanmasında belirleyici olabilir.",
+    noInference:
+      "Dünya üzerindeki tüm canlı türlerinin yok oluş nedeni yalnızca doğal afetlerdir.",
+    kesin:
+      "Paragrafta insanın ekosistem için önemli bir tehdit kaynağı olarak görüldüğü kesin biçimde söylenebilir.",
+    support: [
+      "Dünya, canlı ve cansız varlıkların ilişkilerinden oluşan büyük bir ekosistemdir.",
+      "İnsan bu ekosistemin hem parçası hem de tehdit kaynağıdır.",
+      "Uzmanlara göre türlerin yok oluş hızında insan etkisi önemlidir.",
     ],
   },
   {
-    score: [
-      "su",
-      "tasarruf",
-      "kuraklık",
-      "tüketim",
-      "bilinçli",
-      "gelecek",
-      "kaynak",
-      "korunma",
-      "önlem",
-    ],
-    topic: "su kaynaklarının bilinçli kullanılması ve kuraklık tehlikesine karşı tasarrufun önemi",
+    terms: ["su", "tasarruf", "kuraklık", "tüketim", "bilinçli", "kaynak", "gelecek", "israf"],
+    topic: "Su kaynaklarının bilinçli kullanılması ve tasarrufun önemi",
     mainIdea:
-      "Su kaynaklarını korumak için bireylerin günlük yaşamda tasarruflu ve bilinçli tüketim alışkanlığı kazanması gerekir.",
-    supportingIdeas: [
-      "Suyun tasarruflu kullanılması gelecekte yaşanabilecek kuraklık riskini azaltır.",
-      "Evlerde alınacak küçük önlemler bile suyun korunmasına katkı sağlar.",
-      "Metin, bireysel davranışların doğal kaynakların korunmasında önemli olduğunu vurgular.",
+      "Su kaynaklarını korumak için bireylerin günlük yaşamda bilinçli ve tasarruflu davranması gerekir.",
+    title: "Su Tasarrufunun Önemi",
+    textType: "Açıklayıcı anlatım",
+    said: "Küçük önlemler bile su kaynaklarının korunmasına katkı sağlayabilir.",
+    notSaid: "Metinde su kaynaklarının sınırsız olduğu ve tasarrufa gerek bulunmadığı söylenmiştir.",
+    inference: "Bireysel davranışlar doğal kaynakların korunmasında etkili olabilir.",
+    noInference: "Kuraklıkla mücadelede bireylerin hiçbir sorumluluğu yoktur.",
+    kesin: "Paragrafta suyun bilinçli kullanılması gerektiği kesin olarak çıkarılabilir.",
+    support: [
+      "Su kaynakları sınırsız değildir.",
+      "Bilinçli tüketim gelecek için önemlidir.",
+      "Tasarruf, kuraklık riskine karşı alınabilecek önlemlerden biridir.",
     ],
-    summary:
-      "Paragraf, suyun bilinçli kullanılmasının gelecek açısından taşıdığı önemi anlatır. Küçük önlemlerle su israfının azaltılabileceği ve kuraklık tehlikesine karşı bireylerin sorumluluk alması gerektiği vurgulanır.",
-    titles: ["Su Tasarrufunun Önemi", "Kuraklığa Karşı Bilinçli Tüketim", "Suyu Korumak Geleceği Korumaktır"],
   },
   {
-    score: [
-      "spor",
-      "beden",
-      "sağlık",
-      "ruhsal",
-      "fiziksel",
-      "hareket",
-      "stres",
-      "enerjik",
-      "düzenli",
-      "egzersiz",
-    ],
-    topic: "sporun beden ve ruh sağlığı üzerindeki olumlu etkileri",
-    mainIdea:
-      "Düzenli spor yapmak, bireyin hem fiziksel sağlığını korur hem de ruhsal açıdan daha güçlü ve dengeli olmasına katkı sağlar.",
-    supportingIdeas: [
-      "Spor yapmak beden sağlığını korur ve kişinin kendini daha enerjik hissetmesine yardımcı olur.",
-      "Düzenli hareket eden bireyler stresle daha kolay baş edebilir.",
-      "Metin, sporun yalnızca fiziksel değil ruhsal sağlık açısından da önemli olduğunu vurgular.",
-    ],
-    summary:
-      "Paragraf, spor yapmanın insan sağlığına çok yönlü katkılarını anlatır. Düzenli hareketin bedeni güçlendirdiği, kişiye enerji verdiği ve stresle baş etmeyi kolaylaştırdığı belirtilir.",
-    titles: ["Sporun Sağlığa Katkıları", "Düzenli Hareketin Önemi", "Beden ve Ruh Sağlığı İçin Spor"],
-  },
-  {
-    score: ["taş", "taşlar", "mineral", "maden", "parlak", "nadir", "kral", "savaşçı", "şifacı", "antik"],
-    topic:
-      "değerli taşların eski uygarlıklarda süs eşyasının ötesinde inanç, güç, korunma ve statü sembolü olarak görülmesi",
-    mainIdea:
-      "İnsanlar tarih boyunca bazı taşlara fiziksel özelliklerinden dolayı özel anlamlar yüklemiş; bu taşları kültürel, dinsel ve sembolik amaçlarla kullanmıştır.",
-    supportingIdeas: [
-      "Taşların parlaklığı, rengi ve nadir bulunması onları insanlar için dikkat çekici hâle getirmiştir.",
-      "Antik uygarlıklarda bu taşlar yalnızca estetik nesneler değil, anlam ve güç taşıdığı düşünülen eşyalar olarak değerlendirilmiştir.",
-      "Krallar, savaşçılar, din adamları ve şifacılar belirli taşları koruyucu ya da kutsal bir unsur gibi kullanmıştır.",
-    ],
-    summary:
-      "Paragraf, değerli taşların eski çağlardan beri insanlar tarafından özel kabul edildiğini anlatır. Bu taşlar; parlaklıkları, renkleri ve nadirlikleri nedeniyle süs eşyası olmanın ötesinde güç, korunma, şifa ve statüyle ilişkilendirilmiştir.",
-    titles: ["Değerli Taşlara Yüklenen Anlamlar", "Eski Uygarlıklarda Taşların Gücü", "Taşların Tarihsel ve Sembolik Değeri"],
-  },
-  {
-    score: ["teknoloji", "internet", "dijital", "bilgi", "kaynak", "öğrenme", "araştırma", "eleştirel"],
-    topic: "teknolojinin bilgiye ulaşma ve öğrenme süreçlerini değiştirmesi",
-    mainIdea:
-      "Teknoloji bilgiye erişimi kolaylaştırsa da doğru bilgiyi seçme ve eleştirel düşünme becerisini daha önemli hâle getirmiştir.",
-    supportingIdeas: [
-      "Bilgiye ulaşmak eskiye göre daha hızlı ve kolaydır.",
-      "Kaynak sayısının artması doğru bilgiyi ayırt etmeyi gerekli kılar.",
-      "Metin, teknolojinin kolaylık sağlarken bilinçli kullanım sorumluluğu da doğurduğunu vurgular.",
-    ],
-    summary:
-      "Paragraf, teknolojinin bilgiye erişimi hızlandırdığını ancak bu kolaylığın doğru bilgi seçimi ve eleştirel düşünme ihtiyacını artırdığını anlatır.",
-    titles: ["Teknoloji ve Bilgiye Erişim", "Doğru Bilgiyi Seçmek", "Dijital Çağda Öğrenme"],
-  },
-  {
-    score: ["kitap", "okuma", "okumak", "roman", "öykü", "düşünce", "hayal", "dil", "kelime"],
-    topic: "kitap okumanın bireyin düşünce dünyasına, dil gelişimine ve hayal gücüne katkısı",
+    terms: ["kitap", "okuma", "okumak", "roman", "öykü", "düşünce", "hayal", "dil", "kelime"],
+    topic: "Kitap okumanın düşünce, dil ve hayal gücü üzerindeki etkileri",
     mainIdea:
       "Düzenli kitap okuma alışkanlığı bireyin düşünme becerisini, dil kullanımını ve hayal gücünü geliştirir.",
-    supportingIdeas: [
-      "Kitaplar farklı hayatları ve bakış açılarını tanıma imkânı sağlar.",
-      "Okuma alışkanlığı kişinin kelime dağarcığını ve anlatım gücünü destekler.",
-      "Metin, kitap okumanın zihinsel gelişime katkı sunduğunu vurgular.",
+    title: "Kitap Okumanın Katkıları",
+    textType: "Açıklayıcı anlatım",
+    said: "Kitap okuma bireyin kelime dağarcığını ve düşünce dünyasını geliştirebilir.",
+    notSaid: "Metinde kitap okumanın öğrenmeyi engellediği belirtilmiştir.",
+    inference: "Okuma alışkanlığı bireyin kendini daha iyi ifade etmesine katkı sağlayabilir.",
+    noInference: "Kitap okuyan herkes aynı roman türünü tercih etmek zorundadır.",
+    kesin: "Paragrafta kitap okumanın bireye yarar sağladığı kesin olarak çıkarılabilir.",
+    support: [
+      "Kitaplar farklı bakış açıları kazandırır.",
+      "Okuma alışkanlığı dil gelişimini destekler.",
+      "Hayal gücü ve düşünme becerisi kitaplarla gelişebilir.",
     ],
-    summary:
-      "Paragraf, kitap okumanın kişiye farklı bakış açıları kazandırdığını ve düşünce dünyasını geliştirdiğini açıklar.",
-    titles: ["Kitap Okumanın Katkıları", "Okuma Alışkanlığının Gücü", "Kitaplarla Gelişen Düşünce"],
+  },
+  {
+    terms: ["teknoloji", "internet", "dijital", "bilgi", "kaynak", "öğrenme", "araştırma", "eleştirel"],
+    topic: "Teknolojinin bilgiye ulaşma ve öğrenme sürecine etkisi",
+    mainIdea:
+      "Teknoloji bilgiye erişimi kolaylaştırsa da doğru bilgiyi seçme ve eleştirel düşünme becerisini daha önemli hâle getirmiştir.",
+    title: "Teknoloji ve Doğru Bilgi",
+    textType: "Açıklayıcı anlatım",
+    said: "Teknoloji sayesinde bilgiye ulaşmak eskiye göre daha hızlı ve kolaydır.",
+    notSaid: "Metinde internetteki bütün bilgilerin kesinlikle doğru olduğu savunulmuştur.",
+    inference: "Bilgi kaynaklarının artması, doğru bilgiyi ayırt etmeyi gerekli kılar.",
+    noInference: "Teknoloji kullanan kişiler araştırma yapmaya ihtiyaç duymaz.",
+    kesin: "Paragrafta teknolojinin bilgiye erişimi kolaylaştırdığı kesin olarak çıkarılabilir.",
+    support: [
+      "Bilgiye ulaşmak kolaylaşmıştır.",
+      "Kaynak sayısının artması seçici olmayı gerektirir.",
+      "Eleştirel düşünme dijital çağda önem kazanmıştır.",
+    ],
+  },
+  {
+    terms: ["spor", "beden", "sağlık", "ruhsal", "fiziksel", "hareket", "stres", "enerjik", "egzersiz"],
+    topic: "Sporun beden ve ruh sağlığı üzerindeki olumlu etkileri",
+    mainIdea:
+      "Düzenli spor yapmak, bireyin hem fiziksel sağlığını korur hem de ruhsal açıdan daha dengeli olmasına katkı sağlar.",
+    title: "Sporun Sağlığa Katkıları",
+    textType: "Açıklayıcı anlatım",
+    said: "Spor yapmak kişinin bedensel ve ruhsal sağlığını destekler.",
+    notSaid: "Metinde sporun insan sağlığına hiçbir katkısı olmadığı söylenmiştir.",
+    inference: "Düzenli hareket eden bireyler kendilerini daha sağlıklı ve enerjik hissedebilir.",
+    noInference: "Spor yapan herkes profesyonel sporcu olmak zorundadır.",
+    kesin: "Paragrafta düzenli sporun yararlı olduğu kesin olarak çıkarılabilir.",
+    support: [
+      "Spor beden sağlığını destekler.",
+      "Düzenli hareket ruhsal dengeye katkı sağlar.",
+      "Stresle baş etmede fiziksel aktivite etkili olabilir.",
+    ],
+  },
+  {
+    terms: ["arkadaş", "dost", "dostluk", "güven", "paylaş", "yardım", "samimiyet", "dayanışma"],
+    topic: "Dostluk ve arkadaşlık ilişkilerinde güven ile dayanışmanın önemi",
+    mainIdea:
+      "Gerçek dostluk, zor zamanlarda destek olmak, güven vermek ve paylaşmayı bilmekle değer kazanır.",
+    title: "Gerçek Dostluğun Önemi",
+    textType: "Açıklayıcı anlatım",
+    said: "Dostlukta güven ve dayanışma önemli bir yere sahiptir.",
+    notSaid: "Metinde gerçek dostluğun yalnızca çıkar ilişkisine dayandığı belirtilmiştir.",
+    inference: "İyi bir arkadaşlık ilişkisi karşılıklı güven ve yardım duygusuyla güçlenir.",
+    noInference: "İnsanların hiç arkadaşa ihtiyaç duymadığı sonucuna ulaşılabilir.",
+    kesin: "Paragrafta dostlukta güvenin önemli olduğu kesin olarak çıkarılabilir.",
+    support: [
+      "Dostluk güvenle güçlenir.",
+      "Paylaşma ve yardımlaşma arkadaşlığı değerli kılar.",
+      "Zor zamanlarda verilen destek gerçek dostluğu gösterir.",
+    ],
   },
 ];
 
-const CATEGORY_INFO = {
-  isimler: "Varlıkları, kavramları, yerleri veya kişileri karşılayan sözcükler.",
-  sifatlar: "İsimleri niteleyen ya da belirten sözcükler.",
-  zamirler: "İsimlerin yerine kullanılan sözcükler.",
-  zarflar: "Fiilleri, sıfatları veya başka zarfları zaman, durum, miktar gibi yönlerden tamamlayan sözcükler.",
-  edatlar: "Tek başına anlamı zayıf olan, cümlede ilişki kuran sözcükler.",
-  baglaclar: "Sözcükleri, söz gruplarını veya cümleleri bağlayan sözcükler.",
-  cekimliFiiller: "Kip ve kişi eki alarak yargı bildiren fiiller.",
-  isimFiiller: "-ma, -me, -mak, -mek, -ış, -iş, -uş, -üş ekleriyle adlaşan fiilimsiler.",
-  sifatFiiller: "-an, -en, -ası, -esi, -maz, -mez, -ar, -er, -dik, -ecek, -miş ekleriyle sıfat görevi yapan fiilimsiler.",
-  zarfFiiller: "-ıp, -ip, -arak, -erek, -ınca, -ince, -ken, -madan, -meksizin gibi eklerle zarf görevi yapan fiilimsiler.",
-};
-
-const CATEGORY_LABELS = {
-  isimler: "İsimler",
-  sifatlar: "Sıfatlar",
-  zamirler: "Zamirler",
-  zarflar: "Zarflar",
-  edatlar: "Edatlar",
-  baglaclar: "Bağlaçlar",
-  cekimliFiiller: "Çekimli fiiller",
-  isimFiiller: "İsim-fiiller",
-  sifatFiiller: "Sıfat-fiiller",
-  zarfFiiller: "Zarf-fiiller",
-};
-
 function normalize(text) {
   return text.toLocaleLowerCase("tr-TR");
-}
-
-function unique(values) {
-  return [...new Set(values.filter(Boolean))];
 }
 
 function splitSentences(text) {
@@ -318,10 +190,23 @@ function cleanWord(word) {
   return normalize(word).replace(/['’].*$/, "");
 }
 
+function cleanSentence(sentence) {
+  return sentence.replace(/[.!?]$/, "").trim();
+}
+
+function shorten(text, maxLength = 145) {
+  const clean = cleanSentence(text);
+  return clean.length <= maxLength ? clean : `${clean.slice(0, maxLength).trim()}...`;
+}
+
+function unique(values) {
+  return [...new Set(values.filter(Boolean))];
+}
+
 function getContentWords(text) {
   return tokenize(text)
     .map(cleanWord)
-    .filter((word) => word.length > 2 && !STOP_WORDS.has(word));
+    .filter((word) => word.length > 2 && !STOP_WORDS.has(word) && !/^\d+$/.test(word));
 }
 
 function getKeywords(text, limit = 8) {
@@ -337,128 +222,90 @@ function getKeywords(text, limit = 8) {
     .map(([word]) => word);
 }
 
-function cleanSentence(sentence) {
-  return sentence.replace(/[.!?]$/, "").trim();
-}
-
-function shorten(text, maxLength = 150) {
-  const clean = cleanSentence(text);
-  return clean.length <= maxLength ? clean : `${clean.slice(0, maxLength).trim()}...`;
-}
-
-function sentenceWords(sentence) {
-  return getContentWords(sentence).filter((word) => !/^\d+$/.test(word));
-}
-
-function getSentenceScores(sentences, keywords) {
-  const keywordSet = new Set(keywords.slice(0, 8));
-  const conclusionMarkers = /(bu nedenle|bu yüzden|sonuç olarak|dolayısıyla|kısacası|özetle|böylece|bu durum|bundan dolayı|temel sebep|en önemli|ancak|oysa)/i;
-
-  return sentences.map((sentence, index) => {
-    const words = sentenceWords(sentence);
-    const keywordScore = words.reduce((score, word) => score + (keywordSet.has(word) ? 1.4 : 0), 0);
-    const markerScore = conclusionMarkers.test(sentence) ? 4 : 0;
-    const positionScore = index === sentences.length - 1 ? 2.2 : index === 0 ? 1 : 0;
-    const lengthScore = Math.min(words.length / 8, 2);
-
-    return {
-      sentence,
-      index,
-      score: keywordScore + markerScore + positionScore + lengthScore,
-    };
-  });
-}
-
-function findBestSentence(sentences, keywords) {
-  return getSentenceScores(sentences, keywords)
-    .sort((a, b) => b.score - a.score || b.index - a.index)[0]?.sentence || sentences.at(-1) || sentences[0] || "";
-}
-
-function getPhraseCandidates(sentences) {
-  const phraseScores = new Map();
-
-  sentences.forEach((sentence, sentenceIndex) => {
-    const words = sentenceWords(sentence).filter((word) => word.length > 3);
-
-    for (let size = 3; size >= 2; size -= 1) {
-      for (let index = 0; index <= words.length - size; index += 1) {
-        const phrase = words.slice(index, index + size).join(" ");
-        const previous = phraseScores.get(phrase) || 0;
-        const positionBoost = sentenceIndex === 0 ? 1.5 : 1;
-        phraseScores.set(phrase, previous + size + positionBoost);
-      }
-    }
-  });
-
-  return [...phraseScores.entries()]
-    .filter(([phrase]) => !/(bugüne kadar|çeşitli görüşlere|ileri sürülmektedir|temel sebebidir)/i.test(phrase))
-    .sort((a, b) => b[1] - a[1] || b[0].length - a[0].length)
-    .map(([phrase]) => phrase);
-}
-
 function scoreProfile(text, profile) {
   const lower = normalize(text);
-  return profile.score.reduce((score, token) => (lower.includes(token) ? score + 1 : score), 0);
+  return profile.terms.reduce((score, term) => (lower.includes(term) ? score + 1 : score), 0);
 }
 
 function findProfile(text) {
-  const best = TOPIC_PROFILES
-    .map((profile) => ({ profile, score: scoreProfile(text, profile) }))
-    .sort((a, b) => b.score - a.score)[0];
+  const best = TOPIC_PROFILES.map((profile) => ({ profile, score: scoreProfile(text, profile) })).sort(
+    (a, b) => b.score - a.score,
+  )[0];
 
   return best?.score >= 2 ? best.profile : null;
 }
 
-function findMainIdea(sentences, keywords = []) {
-  const markers = /^(bu nedenle|bu yüzden|sonuç olarak|dolayısıyla|kısacası|özetle|böylece|bu durum|bundan dolayı)/i;
-  const marked = sentences.findLast((sentence) => markers.test(sentence));
-  return cleanSentence(marked || findBestSentence(sentences, keywords));
+function inferTextType(text) {
+  const lower = normalize(text);
+
+  if (/(bence|savunur|kanıtlar|gereklidir|olmalıdır|yanlıştır|doğrudur)/.test(lower)) {
+    return "Tartışmacı anlatım";
+  }
+
+  if (/(kahraman|olay|zaman|yer|yaşadı|gördü|duydu|geldi|gitti|başladı)/.test(lower)) {
+    return "Öyküleyici anlatım";
+  }
+
+  if (/(masmavi|yemyeşil|sessiz|karanlık|aydınlık|güzel|uzun|kısa|geniş|dar)/.test(lower)) {
+    return "Betimleyici anlatım";
+  }
+
+  return "Açıklayıcı anlatım";
 }
 
-function inferGeneralTopic(sentences, keywords, mainIdea = "") {
-  const phrases = getPhraseCandidates(sentences);
-  const joined = `${sentences.join(" ")} ${mainIdea}`.toLocaleLowerCase("tr-TR");
+function findMainIdea(sentences, keywords) {
+  const markers = /(bu nedenle|bu yüzden|sonuç olarak|dolayısıyla|kısacası|özetle|böylece|temel sebep|en önemli|ancak|fakat)/i;
+  const keywordSet = new Set(keywords.slice(0, 8));
 
-  if (/(dünya|ekosistem|canlı|cansız|tür|yok oluş|insan|doğal afet)/i.test(joined)) {
-    return "Dünya ekosisteminde insanın yeri ve insan etkisiyle ortaya çıkan yok oluş tehlikesi";
-  }
+  const scored = sentences.map((sentence, index) => {
+    const words = getContentWords(sentence);
+    const keywordScore = words.reduce((score, word) => score + (keywordSet.has(word) ? 1.5 : 0), 0);
+    const markerScore = markers.test(sentence) ? 4 : 0;
+    const positionScore = index === sentences.length - 1 ? 2 : index === 0 ? 0.7 : 0;
+    const lengthScore = Math.min(words.length / 8, 2);
 
-  if (phrases.length > 0) {
-    return `${phrases[0]} üzerine kurulan temel düşünce`;
-  }
+    return { sentence, score: keywordScore + markerScore + positionScore + lengthScore };
+  });
 
+  return cleanSentence(scored.sort((a, b) => b.score - a.score)[0]?.sentence || sentences.at(-1) || sentences[0] || "");
+}
+
+function getGenericTopic(sentences, keywords) {
   if (keywords.length >= 2) {
-    return `${keywords.slice(0, 2).join(" ve ")} kavramlarıyla ilgili ana düşünce`;
+    return `${keywords[0]} ve ${keywords[1]} kavramları etrafında verilen temel düşünce`;
   }
 
-  const first = shorten(sentences[0] || "");
-  return first ? `ilk cümlede verilen temel durum: "${first}"` : "metindeki temel düşünce";
+  return sentences[0] ? shorten(sentences[0], 95) : "metinde ele alınan temel düşünce";
 }
 
-function buildGeneralMainIdea(mainIdea) {
-  if (!mainIdea) return "Ana fikir belirlenemedi; metin daha açık bir sonuç cümlesi içermelidir.";
+function buildGenericAnalysis(paragraph) {
+  const sentences = splitSentences(paragraph);
+  const keywords = getKeywords(paragraph);
+  const mainIdeaSentence = findMainIdea(sentences, keywords);
+  const topic = getGenericTopic(sentences, keywords);
+  const first = cleanSentence(sentences[0] || "");
+  const textType = inferTextType(paragraph);
+  const support = unique(sentences.map(cleanSentence).filter((sentence) => sentence && sentence !== mainIdeaSentence)).slice(0, 3);
 
-  const clean = shorten(mainIdea, 160);
-  const lower = clean.toLocaleLowerCase("tr-TR");
-
-  if (/gerekir|gereklidir|önemlidir|zorundadır|olmalıdır|sağlar|azaltır|artırır/.test(lower)) {
-    return clean.endsWith(".") ? clean : `${clean}.`;
-  }
-
-  return `Paragrafın ana fikri, metinde verilen açıklamaların "${clean}" düşüncesine bağlanmasıdır.`;
-}
-
-function buildGeneralSummary(sentences, mainIdea) {
-  const first = shorten(sentences[0] || "", 130);
-  const idea = shorten(mainIdea, 130);
-
-  if (first && idea && first !== idea) {
-    return `Paragraf, ${first.charAt(0).toLocaleLowerCase("tr-TR") + first.slice(1)} düşüncesinden hareket eder. Sonuçta metin, ${idea.charAt(0).toLocaleLowerCase("tr-TR") + idea.slice(1)} yargısına ulaşır.`;
-  }
-
-  return first
-    ? `Paragraf, ${first.charAt(0).toLocaleLowerCase("tr-TR") + first.slice(1)} düşüncesini merkeze alır.`
-    : "Metin, tek bir ana düşünce çevresinde kurulmuştur.";
+  return {
+    topic,
+    mainIdea:
+      /gerekir|gereklidir|önemlidir|sağlar|azaltır|artırır|sebebidir|kaynağıdır/i.test(mainIdeaSentence)
+        ? mainIdeaSentence
+        : `Paragrafın ana fikri, "${mainIdeaSentence}" cümlesinde yoğunlaşan düşüncedir.`,
+    title: keywords.length > 0 ? `${toTitleCase(keywords[0])} Üzerine` : "Paragrafın Ana Düşüncesi",
+    textType,
+    said: first || mainIdeaSentence,
+    notSaid: "Metinde anlatılan durumun tamamen önemsiz olduğu ve hiçbir sonuç doğurmadığı söylenmiştir.",
+    inference: `${mainIdeaSentence} düşüncesinden hareketle metindeki olay ya da durumun bir sonuç doğurduğu söylenebilir.`,
+    noInference: "Paragrafta yer almayan kişi, yer ve sayısal bilgiler kesin bilgi gibi kabul edilebilir.",
+    kesin: first || mainIdeaSentence,
+    support:
+      support.length > 0
+        ? support
+        : ["Metindeki ayrıntılar ana düşünceyi açıklamak ve desteklemek için kullanılmıştır."],
+    keywords,
+  };
 }
 
 function toTitleCase(text) {
@@ -470,73 +317,245 @@ function toTitleCase(text) {
     .join(" ");
 }
 
-function getTitleSeed(keywords) {
-  const badTitleWords = new Set([
-    "yok",
-    "oluş",
-    "oluşun",
-    "olduğu",
-    "olan",
-    "göre",
-    "bugüne",
-    "günümüzde",
-    "kadar",
-    "çeşitli",
-    "büyük",
-  ]);
+function getAnalysis(paragraph) {
+  const profile = findProfile(paragraph);
+  const keywords = getKeywords(paragraph);
 
-  return keywords.find((keyword) => keyword.length > 3 && !badTitleWords.has(keyword));
+  if (profile) {
+    return {
+      topic: profile.topic,
+      mainIdea: profile.mainIdea,
+      title: profile.title,
+      textType: profile.textType,
+      said: profile.said,
+      notSaid: profile.notSaid,
+      inference: profile.inference,
+      noInference: profile.noInference,
+      kesin: profile.kesin,
+      support: profile.support,
+      keywords,
+    };
+  }
+
+  return buildGenericAnalysis(paragraph);
 }
 
-function isGoodPhraseForTitle(phrase) {
-  const words = phrase.split(/\s+/).filter(Boolean);
-  if (words.length < 2) return false;
-  if (words.some((word) => word.length < 3)) return false;
-  if (/(yapmak|etmek|olmak|bulunmak|sağlamak)$/.test(words[0])) return false;
-  return true;
+function option(label, isCorrect = false) {
+  return { label, isCorrect };
 }
 
-function generateTitleSuggestions(keywords, topic, mainIdea, sentences = []) {
-  const joined = `${topic} ${mainIdea}`.toLocaleLowerCase("tr-TR");
-  const phrases = getPhraseCandidates(sentences);
+function rotateOptions(options, offset) {
+  const clean = unique(options.map((item) => item.label)).map((label) => {
+    const source = options.find((item) => item.label === label);
+    return option(label, source?.isCorrect);
+  });
 
-  if (/(dünya|ekosistem|canlı|cansız|tür|yok oluş|insan|doğal afet)/i.test(joined)) {
-    return ["Dünya Ekosisteminde İnsan Etkisi", "Altıncı Yok Oluş Tehlikesi", "İnsan ve Ekolojik Denge"];
-  }
-
-  if (/(teknoloji|bilgi|internet|dijital|kaynak)/i.test(joined)) {
-    return ["Teknoloji ve Bilgiye Erişim", "Doğru Bilgiyi Seçmek", "Dijital Çağda Öğrenme"];
-  }
-
-  if (/(kitap|okuma|roman|öykü|kelime dağarcığı|hayal gücü)/i.test(joined)) {
-    return ["Kitap Okumanın Katkıları", "Okuma Alışkanlığının Gücü", "Kitaplarla Gelişen Düşünce"];
-  }
-
-  const seed = getTitleSeed(keywords);
-
-  const phrase = phrases.find(isGoodPhraseForTitle);
-
-  if (phrase) {
-    return [
-      toTitleCase(phrase),
-      `${toTitleCase(phrase.split(" ").slice(0, 2).join(" "))} Üzerine Bir Değerlendirme`,
-      "Metnin Temel Mesajı",
-    ];
-  }
-
-  if (seed) {
-    return [`${toTitleCase(seed)} ve Ana Düşünce`, `${toTitleCase(seed)} Üzerine Bir Değerlendirme`, "Metnin Temel Mesajı"];
-  }
-
-  return ["Metnin Temel Mesajı", "Paragrafın Ana Düşüncesi", "Konuya Genel Bakış"];
+  return [...clean.slice(offset), ...clean.slice(0, offset)].slice(0, 4);
 }
 
-function inferTextType(text) {
-  if (text.includes("?")) return "Sorgulayıcı / düşünsel metin";
-  if (/(kahraman|olay|zaman|yer|yaşadı|gördü|duydu|geldi|gitti)/i.test(text)) return "Öyküleyici metin";
-  if (/(çünkü|bu nedenle|dolayısıyla|sonuç|etki|neden|açıklar|gösterir)/i.test(text)) return "Açıklayıcı metin";
-  if (/(bence|savunur|kanıtlar|gereklidir|olmalıdır)/i.test(text)) return "Tartışmacı metin";
-  return "Bilgilendirici metin";
+function makeQuestion({ id, type, question, options, explanation }, offset = 0) {
+  const finalOptions = rotateOptions(options, offset);
+  const correctIndex = finalOptions.findIndex((item) => item.isCorrect);
+  const correctOption = finalOptions[correctIndex] || finalOptions[0];
+
+  return {
+    id,
+    type,
+    question,
+    options: finalOptions.map((item, index) => ({
+      key: String.fromCharCode(65 + index),
+      text: item.label,
+    })),
+    correctKey: String.fromCharCode(65 + Math.max(correctIndex, 0)),
+    answer: correctOption?.label || "",
+    explanation,
+  };
+}
+
+function getTextTypeExplanation(textType) {
+  if (textType === "Tartışmacı anlatım") {
+    return "Paragrafta bir düşünce savunulduğu ya da okuyucu belli bir görüşe yönlendirildiği için bu seçenek doğrudur.";
+  }
+
+  if (textType === "Öyküleyici anlatım") {
+    return "Paragrafta olay, kişi, zaman ya da hareket akışı öne çıktığı için bu seçenek doğrudur.";
+  }
+
+  if (textType === "Betimleyici anlatım") {
+    return "Paragrafta varlıkların ayırt edici özellikleri betimlenerek aktarıldığı için bu seçenek doğrudur.";
+  }
+
+  return "Paragrafta bilgi verme ve düşünceyi açıklama amacı ağır bastığı için bu seçenek doğrudur.";
+}
+
+export function generateQuestions(paragraph) {
+  const analysis = getAnalysis(paragraph);
+  const genericTopicDistractors = [
+    "Metinde olayın geçtiği yerin ayrıntılı biçimde tasvir edilmesi",
+    "Bir kişinin çocukluk anılarının olay örgüsüyle anlatılması",
+    "Bir ürünün kullanım aşamalarının sırasıyla açıklanması",
+  ];
+
+  const genericIdeaDistractors = [
+    "Metinde anlatılan durumun hiçbir sorun ya da sonuç doğurmadığı savunulmaktadır.",
+    "Paragraf, yalnızca kişisel bir anıyı aktarmak amacıyla yazılmıştır.",
+    "Metinde bütün varlıkların birbirinden bağımsız olduğu düşüncesi öne çıkarılmıştır.",
+  ];
+
+  const questions = [
+    makeQuestion(
+      {
+        id: "topic",
+        type: "Konu",
+        question: "Bu paragrafın konusu aşağıdakilerden hangisidir?",
+        options: [
+          option(analysis.topic, true),
+          ...genericTopicDistractors.map((text) => option(text)),
+        ],
+        explanation: `Paragrafın geneli "${analysis.topic}" düşüncesi etrafında kurulmuştur.`,
+      },
+      1,
+    ),
+    makeQuestion(
+      {
+        id: "main-idea",
+        type: "Ana fikir",
+        question: "Bu paragrafın ana fikri aşağıdakilerden hangisidir?",
+        options: [
+          option(analysis.mainIdea, true),
+          ...genericIdeaDistractors.map((text) => option(text)),
+        ],
+        explanation: "Ana fikir, paragrafın okuyucuya vermek istediği temel mesajdır.",
+      },
+      2,
+    ),
+    makeQuestion(
+      {
+        id: "said",
+        type: "Söylenebilir",
+        question: "Bu paragraftan hareketle aşağıdakilerden hangisi söylenebilir?",
+        options: [
+          option(analysis.said, true),
+          option(analysis.notSaid),
+          option("Metinde verilen düşüncenin tam tersi savunulmaktadır."),
+          option("Paragraf yalnızca kişilerin fiziksel özelliklerini anlatmaktadır."),
+        ],
+        explanation: "Doğru seçenek paragrafta açıkça verilen bilgiyle uyumludur.",
+      },
+      3,
+    ),
+    makeQuestion(
+      {
+        id: "not-said",
+        type: "Söylenemez",
+        question: "Bu paragrafa göre aşağıdakilerden hangisi söylenemez?",
+        options: [
+          option(analysis.notSaid, true),
+          option(analysis.said),
+          option(analysis.support[0]),
+          option(analysis.mainIdea),
+        ],
+        explanation: "Doğru seçenek, paragrafın anlamıyla çelişen ya da paragrafta yer almayan yargıdır.",
+      },
+      0,
+    ),
+    makeQuestion(
+      {
+        id: "inference",
+        type: "Çıkarım",
+        question: "Bu paragraftan aşağıdakilerden hangisi çıkarılabilir?",
+        options: [
+          option(analysis.inference, true),
+          option(analysis.noInference),
+          option("Metindeki bütün yargılar yalnızca bir kişinin hayal ürünüdür."),
+          option("Paragraftaki temel düşünce metnin ilk cümlesiyle ilgisizdir."),
+        ],
+        explanation: "Çıkarım sorularında doğru seçenek, metinde doğrudan söylenmese bile anlamdan ulaşılabilen yargıdır.",
+      },
+      1,
+    ),
+    makeQuestion(
+      {
+        id: "not-inference",
+        type: "Çıkarılamaz",
+        question: "Bu paragraftan aşağıdakilerden hangisi çıkarılamaz?",
+        options: [
+          option(analysis.noInference, true),
+          option(analysis.inference),
+          option(analysis.said),
+          option(analysis.support[1] || analysis.mainIdea),
+        ],
+        explanation: "Doğru seçenek metnin anlamının dışına çıkan, metinden desteklenemeyen bir yargıdır.",
+      },
+      2,
+    ),
+    makeQuestion(
+      {
+        id: "text-type",
+        type: "Anlatım biçimi",
+        question: "Bu paragrafta ağırlıklı olarak hangi anlatım biçimi kullanılmıştır?",
+        options: TEXT_TYPES.map((type) => option(type, type === analysis.textType)),
+        explanation: getTextTypeExplanation(analysis.textType),
+      },
+      0,
+    ),
+    makeQuestion(
+      {
+        id: "certain",
+        type: "Kesin çıkarım",
+        question: "Bu paragraftan kesin olarak çıkarılabilecek yargı aşağıdakilerden hangisidir?",
+        options: [
+          option(analysis.kesin, true),
+          option("Metinde sözü edilen durumun hiçbir etkisi yoktur."),
+          option("Paragrafta bütün ayrıntılar sayısal verilerle kanıtlanmıştır."),
+          option("Metnin amacı okuyucuyu bir kahramanın macerasına ortak etmektir."),
+        ],
+        explanation: "Kesin çıkarım, metinde açıkça desteklenen ve yoruma fazla açık olmayan yargıdır.",
+      },
+      3,
+    ),
+    makeQuestion(
+      {
+        id: "title",
+        type: "Başlık",
+        question: "Bu paragrafa getirilebilecek en uygun başlık aşağıdakilerden hangisidir?",
+        options: [
+          option(analysis.title, true),
+          option("Konuya Genel Bakış"),
+          option("Metnin Ana Mesajı"),
+          option("Günlük Yaşamdan Bir Kesit"),
+        ],
+        explanation: "Uygun başlık, paragrafın konusunu kısa, açık ve özel biçimde yansıtmalıdır.",
+      },
+      1,
+    ),
+  ];
+
+  return {
+    overview: {
+      topic: analysis.topic,
+      mainIdea: analysis.mainIdea,
+      textType: analysis.textType,
+      suggestedTitle: analysis.title,
+      keywords: analysis.keywords,
+    },
+    questions,
+  };
+}
+
+export function analyzeParagraph(paragraph) {
+  const analysis = getAnalysis(paragraph);
+
+  return {
+    konu: `Metnin konusu, ${analysis.topic}.`,
+    anaFikir: analysis.mainIdea,
+    yardimciFikirler: analysis.support,
+    ozet: `${analysis.topic} çerçevesinde metin, "${analysis.mainIdea}" düşüncesini vurgular.`,
+    baslikOnerileri: [analysis.title, `${analysis.title}: Ana Düşünce`, "Paragrafın Temel Mesajı"],
+    anahtarKelimeler: analysis.keywords,
+    metinTuru: analysis.textType,
+    zorlukSeviyesi: inferDifficulty(paragraph),
+  };
 }
 
 function inferDifficulty(text) {
@@ -549,136 +568,9 @@ function inferDifficulty(text) {
   return "Temel";
 }
 
-export function analyzeParagraph(paragraph) {
-  const sentences = splitSentences(paragraph);
-  const keywords = getKeywords(paragraph);
-  const profile = findProfile(paragraph);
-
-  if (profile) {
-    return {
-      konu: `Metnin konusu, ${profile.topic}.`,
-      anaFikir: profile.mainIdea,
-      yardimciFikirler: profile.supportingIdeas,
-      ozet: profile.summary,
-      baslikOnerileri: profile.titles,
-      anahtarKelimeler: keywords,
-      metinTuru: inferTextType(paragraph),
-      zorlukSeviyesi: inferDifficulty(paragraph),
-    };
-  }
-
-  const mainIdea = findMainIdea(sentences, keywords);
-  const topic = inferGeneralTopic(sentences, keywords, mainIdea);
-  const support = sentences
-    .slice(0, 4)
-    .map(cleanSentence)
-    .filter((sentence) => sentence && sentence !== mainIdea)
-    .slice(0, 3);
-
-  return {
-    konu: `Metnin konusu, ${topic}.`,
-    anaFikir: buildGeneralMainIdea(mainIdea),
-    yardimciFikirler:
-      support.length > 0
-        ? support.map((sentence) => `"${shorten(sentence, 120)}" ifadesi ana düşünceyi destekleyen önemli bir ayrıntıdır.`)
-        : ["Metindeki ayrıntılar ana düşünceyi açıklamak ve somutlaştırmak için kullanılmıştır."],
-    ozet: buildGeneralSummary(sentences, mainIdea),
-    baslikOnerileri: generateTitleSuggestions(keywords, topic, mainIdea, sentences),
-    anahtarKelimeler: keywords,
-    metinTuru: inferTextType(paragraph),
-    zorlukSeviyesi: inferDifficulty(paragraph),
-  };
-}
-
-function isVerbalNoun(word) {
-  return /(ma|me|mak|mek|ış|iş|uş|üş)$/.test(word) && word.length > 4;
-}
-
-function isParticiple(word) {
-  if (/(dan|den|tan|ten)$/.test(word)) return false;
-  return /(an|en|maz|mez|dık|dik|duk|dük|acak|ecek|mış|miş|muş|müş)$/.test(word) && word.length > 5;
-}
-
-function isConverb(word) {
-  return /(ıp|ip|up|üp|arak|erek|ınca|ince|unca|ünce|ken|madan|meden|meksizin|maksızın)$/.test(word) && word.length > 5;
-}
-
-function isFiniteVerb(word) {
-  if (COMMON_ADJECTIVES.has(word) || PRONOUNS.has(word) || CONJUNCTIONS.has(word) || POSTPOSITIONS.has(word)) return false;
-  if (/(yor)(um|sun|uz|sunuz|lar|ler|du|dü|dı|di|muş|müş)?$/.test(word)) return true;
-  if (/(mış|miş|muş|müş|malı|meli)(ım|im|um|üm|sın|sin|sun|sün|ız|iz|uz|üz|lar|ler)?$/.test(word)) return true;
-  if (/(acak|ecek)(ım|im|sın|sin|ız|iz|lar|ler)?$/.test(word)) return true;
-  if (/(dı|di|du|dü|tı|ti|tu|tü)(m|n|k|nız|niz|lar|ler)?$/.test(word) && word.length > 5) return true;
-  return false;
-}
-
-function isLikelyAdverb(word) {
-  return COMMON_ADVERBS.has(word) || /(casına|cesine|ınca|ince|unca|ünce)$/.test(word);
-}
-
-function isLikelyAdjective(word, nextWord) {
-  return COMMON_ADJECTIVES.has(word) || (!!nextWord && /(sal|sel|ki)$/.test(word));
-}
-
-function isLikelyNoun(word) {
-  return (
-    !PRONOUNS.has(word) &&
-    !CONJUNCTIONS.has(word) &&
-    !POSTPOSITIONS.has(word) &&
-    !COMMON_ADJECTIVES.has(word) &&
-    !COMMON_ADVERBS.has(word) &&
-    !isFiniteVerb(word) &&
-    !isVerbalNoun(word) &&
-    !isParticiple(word) &&
-    !isConverb(word) &&
-    word.length > 2
-  );
-}
-
-export function analyzeGrammar(paragraph) {
-  const words = tokenize(paragraph);
-  const normalized = words.map(cleanWord);
-  const categories = {
-    isimler: [],
-    sifatlar: [],
-    zamirler: [],
-    zarflar: [],
-    edatlar: [],
-    baglaclar: [],
-    cekimliFiiller: [],
-    isimFiiller: [],
-    sifatFiiller: [],
-    zarfFiiller: [],
-  };
-
-  normalized.forEach((word, index) => {
-    const original = words[index];
-    const next = normalized[index + 1];
-
-    if (PRONOUNS.has(word)) categories.zamirler.push(original);
-    if (CONJUNCTIONS.has(word)) categories.baglaclar.push(original);
-    if (POSTPOSITIONS.has(word)) categories.edatlar.push(original);
-    if (isLikelyAdverb(word)) categories.zarflar.push(original);
-    if (isVerbalNoun(word)) categories.isimFiiller.push(original);
-    if (isParticiple(word)) categories.sifatFiiller.push(original);
-    if (isConverb(word)) categories.zarfFiiller.push(original);
-    if (isFiniteVerb(word) && !isParticiple(word) && !isConverb(word)) categories.cekimliFiiller.push(original);
-    if (isLikelyAdjective(word, next)) categories.sifatlar.push(original);
-    if (isLikelyNoun(word)) categories.isimler.push(original);
-  });
-
-  return Object.entries(categories).map(([key, values]) => ({
-    key,
-    label: CATEGORY_LABELS[key],
-    words: unique(values).slice(0, 18),
-    count: unique(values).length,
-    explanation: CATEGORY_INFO[key],
-  }));
-}
-
 export function analyzeText(paragraph) {
   return {
     ...analyzeParagraph(paragraph),
-    dilBilgisi: analyzeGrammar(paragraph),
+    questionSet: generateQuestions(paragraph),
   };
 }
