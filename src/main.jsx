@@ -8,24 +8,14 @@ import {
   Eye,
   EyeOff,
   Hash,
-  Lightbulb,
   Loader2,
-  PenLine,
   Sparkles,
-  Target,
   Wand2,
 } from "lucide-react";
 import "./styles.css";
 
 const sampleParagraph =
   "Dünya, üzerinde bulunan canlı ve cansız varlıklar ile bunların ilişkilerinden meydana gelen büyük bir ekosistemden oluşur. İnsanoğlu bu ekosistemin etkin bir parçasıdır. Ancak aynı zamanda ekosistemin en önemli tehdit kaynaklarından biri de insandır. Çeşitli görüşlere göre 4,5 milyar yaşında olan Dünya'mızda bugüne kadar yaşanan doğal afetler neticesinde yaşamsal varlıkların 5 kez yok olduğu, günümüzde ise 6. yok oluşun başladığı ileri sürülmektedir. Türlerin yok oluş hızını değerlendiren uzmanlara göre insanoğlu bu yok oluşun temel sebebidir.";
-
-const overviewItems = [
-  { key: "topic", title: "Konu", icon: BookOpenText },
-  { key: "mainIdea", title: "Ana fikir", icon: Target },
-  { key: "textType", title: "Anlatım biçimi", icon: PenLine },
-  { key: "suggestedTitle", title: "Başlık önerisi", icon: Lightbulb },
-];
 
 function StatCard({ label, value, icon: Icon }) {
   return (
@@ -36,22 +26,6 @@ function StatCard({ label, value, icon: Icon }) {
       </div>
       <strong className="text-xl font-semibold text-slate-950">{value}</strong>
     </div>
-  );
-}
-
-function OverviewCard({ item, value }) {
-  const Icon = item.icon;
-
-  return (
-    <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-      <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-950">
-        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-emerald-50 text-emerald-700">
-          <Icon size={17} />
-        </span>
-        {item.title}
-      </div>
-      <p className="text-sm leading-6 text-slate-700">{value}</p>
-    </section>
   );
 }
 
@@ -123,7 +97,7 @@ function EmptyState() {
       </span>
       <h2 className="text-lg font-semibold text-slate-950">Sorular burada hazırlanacak</h2>
       <p className="mt-2 max-w-md text-sm leading-6 text-slate-600">
-        Paragrafı ekleyip soruları hazırladığında konu, ana fikir, çıkarım, söylenemez ve anlatım biçimi gibi soru türleri oluşur.
+        Paragrafı ekleyip soruları hazırladığında soru bankası diline yakın, seçenekli ve açıklamalı bir çalışma seti oluşur.
       </p>
     </section>
   );
@@ -232,12 +206,6 @@ function App() {
                     {revealAll ? <EyeOff size={16} /> : <Eye size={16} />}
                     {revealAll ? "Tüm cevapları gizle" : "Tüm cevapları göster"}
                   </button>
-                </div>
-
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {overviewItems.map((item) => (
-                    <OverviewCard item={item} key={item.key} value={result.overview[item.key]} />
-                  ))}
                 </div>
 
                 <div className="space-y-4">
