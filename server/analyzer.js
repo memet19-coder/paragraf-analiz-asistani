@@ -27,6 +27,15 @@ const STOP_WORDS = new Set([
   "sonra",
   "ve",
   "veya",
+  "yok",
+  "oluş",
+  "oluşun",
+  "kez",
+  "göre",
+  "bugüne",
+  "günümüzde",
+  "ileri",
+  "sürülmektedir",
 ]);
 
 const PRONOUNS = new Set([
@@ -134,6 +143,86 @@ const COMMON_ADVERBS = new Set([
 ]);
 
 const TOPIC_PROFILES = [
+  {
+    score: [
+      "dünya",
+      "ekosistem",
+      "canlı",
+      "cansız",
+      "insanoğlu",
+      "insan",
+      "tehdit",
+      "doğal afet",
+      "yok oluş",
+      "tür",
+      "yaşamsal",
+    ],
+    topic:
+      "Dünya ekosisteminde insanın yeri ve insan faaliyetlerinin canlı yaşamı üzerindeki yıkıcı etkileri",
+    mainIdea:
+      "İnsan, Dünya ekosisteminin bir parçası olmasına rağmen canlı türlerinin yok oluşunu hızlandıran en önemli tehdit kaynaklarından biri hâline gelmiştir.",
+    supportingIdeas: [
+      "Dünya, canlı ve cansız varlıkların birbiriyle ilişkili olduğu büyük bir ekosistem olarak ele alınmaktadır.",
+      "İnsan bu ekosistemin etkin bir parçasıdır; ancak aynı zamanda ekosisteme zarar veren başlıca unsurlardan biridir.",
+      "Uzmanlara göre günümüzde yaşanan tür kayıplarında insan etkisi belirleyici bir rol oynamaktadır.",
+    ],
+    summary:
+      "Paragraf, Dünya’nın canlı ve cansız varlıkların ilişkileriyle oluşan büyük bir ekosistem olduğunu anlatır. İnsan bu sistemin bir parçası olsa da doğal dengeyi bozan, türlerin yok oluş hızını artıran ve yeni bir yok oluş sürecini başlatan temel etkenlerden biri olarak gösterilir.",
+    titles: [
+      "Dünya Ekosisteminde İnsan Etkisi",
+      "Altıncı Yok Oluş ve İnsan",
+      "Ekosistemin En Büyük Tehdidi",
+    ],
+  },
+  {
+    score: [
+      "su",
+      "tasarruf",
+      "kuraklık",
+      "tüketim",
+      "bilinçli",
+      "gelecek",
+      "kaynak",
+      "korunma",
+      "önlem",
+    ],
+    topic: "su kaynaklarının bilinçli kullanılması ve kuraklık tehlikesine karşı tasarrufun önemi",
+    mainIdea:
+      "Su kaynaklarını korumak için bireylerin günlük yaşamda tasarruflu ve bilinçli tüketim alışkanlığı kazanması gerekir.",
+    supportingIdeas: [
+      "Suyun tasarruflu kullanılması gelecekte yaşanabilecek kuraklık riskini azaltır.",
+      "Evlerde alınacak küçük önlemler bile suyun korunmasına katkı sağlar.",
+      "Metin, bireysel davranışların doğal kaynakların korunmasında önemli olduğunu vurgular.",
+    ],
+    summary:
+      "Paragraf, suyun bilinçli kullanılmasının gelecek açısından taşıdığı önemi anlatır. Küçük önlemlerle su israfının azaltılabileceği ve kuraklık tehlikesine karşı bireylerin sorumluluk alması gerektiği vurgulanır.",
+    titles: ["Su Tasarrufunun Önemi", "Kuraklığa Karşı Bilinçli Tüketim", "Suyu Korumak Geleceği Korumaktır"],
+  },
+  {
+    score: [
+      "spor",
+      "beden",
+      "sağlık",
+      "ruhsal",
+      "fiziksel",
+      "hareket",
+      "stres",
+      "enerjik",
+      "düzenli",
+      "egzersiz",
+    ],
+    topic: "sporun beden ve ruh sağlığı üzerindeki olumlu etkileri",
+    mainIdea:
+      "Düzenli spor yapmak, bireyin hem fiziksel sağlığını korur hem de ruhsal açıdan daha güçlü ve dengeli olmasına katkı sağlar.",
+    supportingIdeas: [
+      "Spor yapmak beden sağlığını korur ve kişinin kendini daha enerjik hissetmesine yardımcı olur.",
+      "Düzenli hareket eden bireyler stresle daha kolay baş edebilir.",
+      "Metin, sporun yalnızca fiziksel değil ruhsal sağlık açısından da önemli olduğunu vurgular.",
+    ],
+    summary:
+      "Paragraf, spor yapmanın insan sağlığına çok yönlü katkılarını anlatır. Düzenli hareketin bedeni güçlendirdiği, kişiye enerji verdiği ve stresle baş etmeyi kolaylaştırdığı belirtilir.",
+    titles: ["Sporun Sağlığa Katkıları", "Düzenli Hareketin Önemi", "Beden ve Ruh Sağlığı İçin Spor"],
+  },
   {
     score: ["taş", "taşlar", "mineral", "maden", "parlak", "nadir", "kral", "savaşçı", "şifacı", "antik"],
     topic:
@@ -257,6 +346,56 @@ function shorten(text, maxLength = 150) {
   return clean.length <= maxLength ? clean : `${clean.slice(0, maxLength).trim()}...`;
 }
 
+function sentenceWords(sentence) {
+  return getContentWords(sentence).filter((word) => !/^\d+$/.test(word));
+}
+
+function getSentenceScores(sentences, keywords) {
+  const keywordSet = new Set(keywords.slice(0, 8));
+  const conclusionMarkers = /(bu nedenle|bu yüzden|sonuç olarak|dolayısıyla|kısacası|özetle|böylece|bu durum|bundan dolayı|temel sebep|en önemli|ancak|oysa)/i;
+
+  return sentences.map((sentence, index) => {
+    const words = sentenceWords(sentence);
+    const keywordScore = words.reduce((score, word) => score + (keywordSet.has(word) ? 1.4 : 0), 0);
+    const markerScore = conclusionMarkers.test(sentence) ? 4 : 0;
+    const positionScore = index === sentences.length - 1 ? 2.2 : index === 0 ? 1 : 0;
+    const lengthScore = Math.min(words.length / 8, 2);
+
+    return {
+      sentence,
+      index,
+      score: keywordScore + markerScore + positionScore + lengthScore,
+    };
+  });
+}
+
+function findBestSentence(sentences, keywords) {
+  return getSentenceScores(sentences, keywords)
+    .sort((a, b) => b.score - a.score || b.index - a.index)[0]?.sentence || sentences.at(-1) || sentences[0] || "";
+}
+
+function getPhraseCandidates(sentences) {
+  const phraseScores = new Map();
+
+  sentences.forEach((sentence, sentenceIndex) => {
+    const words = sentenceWords(sentence).filter((word) => word.length > 3);
+
+    for (let size = 3; size >= 2; size -= 1) {
+      for (let index = 0; index <= words.length - size; index += 1) {
+        const phrase = words.slice(index, index + size).join(" ");
+        const previous = phraseScores.get(phrase) || 0;
+        const positionBoost = sentenceIndex === 0 ? 1.5 : 1;
+        phraseScores.set(phrase, previous + size + positionBoost);
+      }
+    }
+  });
+
+  return [...phraseScores.entries()]
+    .filter(([phrase]) => !/(bugüne kadar|çeşitli görüşlere|ileri sürülmektedir|temel sebebidir)/i.test(phrase))
+    .sort((a, b) => b[1] - a[1] || b[0].length - a[0].length)
+    .map(([phrase]) => phrase);
+}
+
 function scoreProfile(text, profile) {
   const lower = normalize(text);
   return profile.score.reduce((score, token) => (lower.includes(token) ? score + 1 : score), 0);
@@ -270,18 +409,126 @@ function findProfile(text) {
   return best?.score >= 2 ? best.profile : null;
 }
 
-function findMainIdea(sentences) {
+function findMainIdea(sentences, keywords = []) {
   const markers = /^(bu nedenle|bu yüzden|sonuç olarak|dolayısıyla|kısacası|özetle|böylece|bu durum|bundan dolayı)/i;
-  return cleanSentence(sentences.findLast((sentence) => markers.test(sentence)) || sentences.at(-1) || sentences[0] || "");
+  const marked = sentences.findLast((sentence) => markers.test(sentence));
+  return cleanSentence(marked || findBestSentence(sentences, keywords));
 }
 
-function inferGeneralTopic(sentences, keywords) {
-  if (keywords.length >= 3) {
-    return `metinde öne çıkan ${keywords.slice(0, 3).join(", ")} kavramları arasındaki ilişki`;
+function inferGeneralTopic(sentences, keywords, mainIdea = "") {
+  const phrases = getPhraseCandidates(sentences);
+  const joined = `${sentences.join(" ")} ${mainIdea}`.toLocaleLowerCase("tr-TR");
+
+  if (/(dünya|ekosistem|canlı|cansız|tür|yok oluş|insan|doğal afet)/i.test(joined)) {
+    return "Dünya ekosisteminde insanın yeri ve insan etkisiyle ortaya çıkan yok oluş tehlikesi";
+  }
+
+  if (phrases.length > 0) {
+    return `${phrases[0]} üzerine kurulan temel düşünce`;
+  }
+
+  if (keywords.length >= 2) {
+    return `${keywords.slice(0, 2).join(" ve ")} kavramlarıyla ilgili ana düşünce`;
   }
 
   const first = shorten(sentences[0] || "");
   return first ? `ilk cümlede verilen temel durum: "${first}"` : "metindeki temel düşünce";
+}
+
+function buildGeneralMainIdea(mainIdea) {
+  if (!mainIdea) return "Ana fikir belirlenemedi; metin daha açık bir sonuç cümlesi içermelidir.";
+
+  const clean = shorten(mainIdea, 160);
+  const lower = clean.toLocaleLowerCase("tr-TR");
+
+  if (/gerekir|gereklidir|önemlidir|zorundadır|olmalıdır|sağlar|azaltır|artırır/.test(lower)) {
+    return clean.endsWith(".") ? clean : `${clean}.`;
+  }
+
+  return `Paragrafın ana fikri, metinde verilen açıklamaların "${clean}" düşüncesine bağlanmasıdır.`;
+}
+
+function buildGeneralSummary(sentences, mainIdea) {
+  const first = shorten(sentences[0] || "", 130);
+  const idea = shorten(mainIdea, 130);
+
+  if (first && idea && first !== idea) {
+    return `Paragraf, ${first.charAt(0).toLocaleLowerCase("tr-TR") + first.slice(1)} düşüncesinden hareket eder. Sonuçta metin, ${idea.charAt(0).toLocaleLowerCase("tr-TR") + idea.slice(1)} yargısına ulaşır.`;
+  }
+
+  return first
+    ? `Paragraf, ${first.charAt(0).toLocaleLowerCase("tr-TR") + first.slice(1)} düşüncesini merkeze alır.`
+    : "Metin, tek bir ana düşünce çevresinde kurulmuştur.";
+}
+
+function toTitleCase(text) {
+  return text
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 7)
+    .map((word) => `${word.charAt(0).toLocaleUpperCase("tr-TR")}${word.slice(1)}`)
+    .join(" ");
+}
+
+function getTitleSeed(keywords) {
+  const badTitleWords = new Set([
+    "yok",
+    "oluş",
+    "oluşun",
+    "olduğu",
+    "olan",
+    "göre",
+    "bugüne",
+    "günümüzde",
+    "kadar",
+    "çeşitli",
+    "büyük",
+  ]);
+
+  return keywords.find((keyword) => keyword.length > 3 && !badTitleWords.has(keyword));
+}
+
+function isGoodPhraseForTitle(phrase) {
+  const words = phrase.split(/\s+/).filter(Boolean);
+  if (words.length < 2) return false;
+  if (words.some((word) => word.length < 3)) return false;
+  if (/(yapmak|etmek|olmak|bulunmak|sağlamak)$/.test(words[0])) return false;
+  return true;
+}
+
+function generateTitleSuggestions(keywords, topic, mainIdea, sentences = []) {
+  const joined = `${topic} ${mainIdea}`.toLocaleLowerCase("tr-TR");
+  const phrases = getPhraseCandidates(sentences);
+
+  if (/(dünya|ekosistem|canlı|cansız|tür|yok oluş|insan|doğal afet)/i.test(joined)) {
+    return ["Dünya Ekosisteminde İnsan Etkisi", "Altıncı Yok Oluş Tehlikesi", "İnsan ve Ekolojik Denge"];
+  }
+
+  if (/(teknoloji|bilgi|internet|dijital|kaynak)/i.test(joined)) {
+    return ["Teknoloji ve Bilgiye Erişim", "Doğru Bilgiyi Seçmek", "Dijital Çağda Öğrenme"];
+  }
+
+  if (/(kitap|okuma|roman|öykü|kelime dağarcığı|hayal gücü)/i.test(joined)) {
+    return ["Kitap Okumanın Katkıları", "Okuma Alışkanlığının Gücü", "Kitaplarla Gelişen Düşünce"];
+  }
+
+  const seed = getTitleSeed(keywords);
+
+  const phrase = phrases.find(isGoodPhraseForTitle);
+
+  if (phrase) {
+    return [
+      toTitleCase(phrase),
+      `${toTitleCase(phrase.split(" ").slice(0, 2).join(" "))} Üzerine Bir Değerlendirme`,
+      "Metnin Temel Mesajı",
+    ];
+  }
+
+  if (seed) {
+    return [`${toTitleCase(seed)} ve Ana Düşünce`, `${toTitleCase(seed)} Üzerine Bir Değerlendirme`, "Metnin Temel Mesajı"];
+  }
+
+  return ["Metnin Temel Mesajı", "Paragrafın Ana Düşüncesi", "Konuya Genel Bakış"];
 }
 
 function inferTextType(text) {
@@ -320,8 +567,8 @@ export function analyzeParagraph(paragraph) {
     };
   }
 
-  const mainIdea = findMainIdea(sentences);
-  const topic = inferGeneralTopic(sentences, keywords);
+  const mainIdea = findMainIdea(sentences, keywords);
+  const topic = inferGeneralTopic(sentences, keywords, mainIdea);
   const support = sentences
     .slice(0, 4)
     .map(cleanSentence)
@@ -330,22 +577,13 @@ export function analyzeParagraph(paragraph) {
 
   return {
     konu: `Metnin konusu, ${topic}.`,
-    anaFikir: mainIdea
-      ? `Paragrafın ana fikri, "${shorten(mainIdea, 140)}" yargısı etrafında şekillenmektedir.`
-      : "Ana fikir belirlenemedi; metin daha açık bir sonuç cümlesi içermelidir.",
+    anaFikir: buildGeneralMainIdea(mainIdea),
     yardimciFikirler:
       support.length > 0
         ? support.map((sentence) => `"${shorten(sentence, 120)}" ifadesi ana düşünceyi destekleyen önemli bir ayrıntıdır.`)
         : ["Metindeki ayrıntılar ana düşünceyi açıklamak ve somutlaştırmak için kullanılmıştır."],
-    ozet:
-      sentences.length > 1
-        ? `Paragraf, "${shorten(sentences[0], 120)}" düşüncesinden hareket eder ve "${shorten(mainIdea, 120)}" sonucuna ulaşır.`
-        : `Paragraf, "${shorten(sentences[0] || paragraph, 140)}" düşüncesini merkeze alır.`,
-    baslikOnerileri: [
-      "Metnin Ana Mesajı",
-      keywords[0] ? `${keywords[0][0].toLocaleUpperCase("tr-TR")}${keywords[0].slice(1)} Üzerine` : "Paragrafın Temel Düşüncesi",
-      "Konuya Genel Bakış",
-    ],
+    ozet: buildGeneralSummary(sentences, mainIdea),
+    baslikOnerileri: generateTitleSuggestions(keywords, topic, mainIdea, sentences),
     anahtarKelimeler: keywords,
     metinTuru: inferTextType(paragraph),
     zorlukSeviyesi: inferDifficulty(paragraph),
