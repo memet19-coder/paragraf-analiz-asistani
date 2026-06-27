@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import {
   BookOpenText,
@@ -16,6 +16,7 @@ import {
   Sparkles,
   Trash2,
   Wand2,
+  XCircle,
 } from "lucide-react";
 import "./styles.css";
 
@@ -59,7 +60,15 @@ function SegmentButton({ active, children, icon: Icon, onClick }) {
 
 function QuestionCard({ isSaved, onSave, question, revealAll }) {
   const [isVisible, setIsVisible] = useState(false);
-  const showAnswer = revealAll || isVisible;
+  const [selectedKey, setSelectedKey] = useState("");
+  const hasSelection = Boolean(selectedKey);
+  const selectedIsCorrect = selectedKey === question.correctKey;
+  const showAnswer = revealAll || isVisible || hasSelection;
+
+  useEffect(() => {
+    setIsVisible(false);
+    setSelectedKey("");
+  }, [question.question, question.answer]);
 
   return (
     <article className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
@@ -97,30 +106,53 @@ function QuestionCard({ isSaved, onSave, question, revealAll }) {
 
       <div className="grid gap-2">
         {question.options.map((option) => {
-          const isCorrect = showAnswer && option.key === question.correctKey;
+          const isCorrectOption = option.key === question.correctKey;
+          const isSelected = selectedKey === option.key;
+          const showCorrect = showAnswer && isCorrectOption;
+          const showWrong = hasSelection && isSelected && !isCorrectOption;
 
           return (
-            <div
-              className={`flex gap-3 rounded-lg border px-3 py-3 text-sm leading-6 transition ${
-                isCorrect ? "border-emerald-300 bg-emerald-50 text-emerald-950" : "border-slate-200 bg-slate-50 text-slate-700"
+            <button
+              className={`flex w-full gap-3 rounded-lg border px-3 py-3 text-left text-sm leading-6 transition ${
+                showCorrect
+                  ? "border-emerald-400 bg-emerald-50 text-emerald-950"
+                  : showWrong
+                    ? "border-red-400 bg-red-50 text-red-950"
+                    : "border-slate-200 bg-slate-50 text-slate-700 hover:border-slate-300 hover:bg-white"
               }`}
               key={option.key}
+              onClick={() => setSelectedKey(option.key)}
+              type="button"
             >
               <span
                 className={`grid h-7 w-7 shrink-0 place-items-center rounded-md text-xs font-bold ${
-                  isCorrect ? "bg-emerald-600 text-white" : "bg-white text-slate-700"
+                  showCorrect ? "bg-emerald-600 text-white" : showWrong ? "bg-red-600 text-white" : "bg-white text-slate-700"
                 }`}
               >
                 {option.key}
               </span>
               <span>{option.text}</span>
-            </div>
+            </button>
           );
         })}
       </div>
 
       {showAnswer ? (
-        <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 p-4">
+        <div
+          className={`mt-4 rounded-lg border p-4 ${
+            hasSelection && !selectedIsCorrect ? "border-red-200 bg-red-50" : "border-emerald-200 bg-emerald-50"
+          }`}
+        >
+          {hasSelection ? (
+            <div
+              className={`mb-2 flex items-center gap-2 text-sm font-semibold ${
+                selectedIsCorrect ? "text-emerald-900" : "text-red-900"
+              }`}
+            >
+              {selectedIsCorrect ? <CheckCircle2 size={17} /> : <XCircle size={17} />}
+              {selectedIsCorrect ? "Tebrikler, doğru işaretledin" : `Seçtiğin cevap: ${selectedKey}`}
+            </div>
+          ) : null}
           <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-emerald-900">
             <CheckCircle2 size={17} />
             Doğru cevap: {question.correctKey}
