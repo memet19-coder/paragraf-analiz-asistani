@@ -122,6 +122,9 @@ const NON_NOUNS = new Set([
   "yalnızca",
   "bugüne",
   "günümüzde",
+  "değil",
+  "sanki",
+  "sonuçta",
 ]);
 
 const SAFE_ADJECTIVES = new Set([
@@ -153,6 +156,8 @@ const SAFE_ADJECTIVES = new Set([
   "zayıf",
   "canlı",
   "cansız",
+  "kırmızı",
+  "soğuk",
 ]);
 
 const SAFE_NOUN_ROOTS = new Set([
@@ -181,6 +186,43 @@ const SAFE_NOUN_ROOTS = new Set([
   "oluş",
   "parça",
   "not",
+  "neden",
+  "anlatım",
+  "biçim",
+  "elma",
+  "ev",
+  "hayat",
+  "iz",
+  "kalem",
+  "kapı",
+  "kol",
+  "okul",
+  "öğrenci",
+  "öğretmen",
+  "soru",
+  "türkçe",
+  "yol",
+]);
+
+const NUMBER_WORDS = new Set([
+  "bir",
+  "iki",
+  "üç",
+  "dört",
+  "beş",
+  "altı",
+  "yedi",
+  "sekiz",
+  "dokuz",
+  "on",
+]);
+
+const NON_ADJECTIVE_WORDS = new Set([
+  "anlatıcı",
+  "neden",
+  "öğretmen",
+  "öğrenci",
+  "yazar",
 ]);
 
 const TOPIC_PROFILES = [
@@ -687,10 +729,23 @@ function inferSentenceKind(sentence) {
 }
 
 function findAdjectives(paragraph) {
-  return originalMatches(paragraph, (word) => {
-    const base = stripCaseSuffix(word);
-    return COMMON_ADJECTIVES.has(base) || /(sal|sel|ki)$/.test(base) || /^\d+$/.test(base);
-  });
+  const words = tokenize(paragraph);
+  const matches = [];
+
+  for (let index = 0; index < words.length - 1; index += 1) {
+    const original = words[index];
+    const word = cleanWord(original);
+    const next = cleanWord(words[index + 1]);
+
+    if (/(dan|den|tan|ten)$/.test(word)) continue;
+    if (next === "değil") continue;
+    if (!isLikelyAdjectiveWord(word)) continue;
+    if (!isSimpleNoun(next)) continue;
+
+    matches.push(original);
+  }
+
+  return unique(matches).slice(0, 24);
 }
 
 function isLikelyNoun(word) {
@@ -745,16 +800,43 @@ function hasGenitiveSuffix(word) {
   return /(ın|in|un|ün|nın|nin|nun|nün)$/.test(word);
 }
 
-function hasPossessiveSuffix(word) {
-  return /(sı|si|su|sü|ı|i|u|ü|ları|leri|larının|lerinin|larından|lerinden|sıdır|sidir|sudur|südür|ıdır|idir|udur|üdür)$/.test(word);
+function hasTamlananSuffix(word) {
+  if (SAFE_NOUN_ROOTS.has(word) || COMMON_NOUNS.has(word)) return false;
+
+  const rootAfterSingleVowel = word.replace(/[ıiuü]$/i, "");
+
+  return (
+    /(sı|si|su|sü|ları|leri)$/.test(word) ||
+    /(sıdır|sidir|sudur|südür|ıdır|idir|udur|üdür)$/.test(word) ||
+    /(ını|ini|unu|ünü|sını|sini|sunu|sünü)$/.test(word) ||
+    /(ından|inden|undan|ünden|sından|sinden|sundan|sünden)$/.test(word) ||
+    /(larına|lerine|larını|lerini|larının|lerinin|larından|lerinden)$/.test(word) ||
+    (
+      /[ıiuü]$/.test(word) &&
+      !/(yı|yi|yu|yü|lı|li|lu|lü|sız|siz|suz|süz)$/.test(word) &&
+      (SAFE_NOUN_ROOTS.has(rootAfterSingleVowel) || SAFE_NOUN_ROOTS.has(rootAfterSingleVowel.replace(/c$/, "ç")))
+    )
+  );
 }
 
-function hasStrongPossessiveSuffix(word) {
-  return /(sı|si|su|sü|ları|leri|larının|lerinin|larından|lerinden|sıdır|sidir|sudur|südür)$/.test(word);
+function classifyNounPhrase(first, second) {
+  const firstGenitive = hasGenitiveSuffix(first);
+  const secondPossessive = hasTamlananSuffix(second);
+
+  if (!secondPossessive) return "";
+  if (firstGenitive) return "belirtili";
+  return "belirtisiz";
 }
 
 function isLikelyAdjectiveWord(word) {
   const base = stripCaseSuffix(word);
+  const root = getPhraseRoot(word);
+
+  if (NON_ADJECTIVE_WORDS.has(word) || NON_ADJECTIVE_WORDS.has(base) || NON_ADJECTIVE_WORDS.has(root)) return false;
+  if ((SAFE_NOUN_ROOTS.has(root) || COMMON_NOUNS.has(root)) && !SAFE_ADJECTIVES.has(root) && !COMMON_DETERMINERS.has(root)) {
+    return false;
+  }
+
   return (
     SAFE_ADJECTIVES.has(word) ||
     SAFE_ADJECTIVES.has(base) ||
@@ -762,15 +844,29 @@ function isLikelyAdjectiveWord(word) {
     COMMON_ADJECTIVES.has(base) ||
     COMMON_DETERMINERS.has(word) ||
     COMMON_DETERMINERS.has(base) ||
+    NUMBER_WORDS.has(word) ||
+    NUMBER_WORDS.has(base) ||
+    /^(kaç|kaçıncı|hangi)$/.test(word) ||
+    /^(kaç|kaçıncı|hangi)$/.test(base) ||
     /^\d+$/.test(base) ||
     /(sal|sel|ki)$/.test(base) ||
     /(an|en|acak|ecek|mış|miş|muş|müş|dık|dik|duk|dük|tık|tik|tuk|tük|dığı|diği|duğu|düğü|tığı|tiği|tuğu|tüğü)$/.test(base)
   );
 }
 
+function isParticipleLike(word) {
+  const base = stripNominalSuffixes(word);
+  return /(dık|dik|duk|dük|tık|tik|tuk|tük|dığı|diği|duğu|düğü|tığı|tiği|tuğu|tüğü|an|en|mış|miş|muş|müş)$/.test(base);
+}
+
+function isVerbalNounLike(word) {
+  const base = stripNominalSuffixes(word);
+  return /(mak|mek|ma|me|ış|iş|uş|üş)$/.test(base) || /y[ıiuü]$/.test(word);
+}
+
 function shouldSkipPhrase(first, second) {
   return (
-    STOP_WORDS.has(first) ||
+    (STOP_WORDS.has(first) && !COMMON_DETERMINERS.has(first)) ||
     STOP_WORDS.has(second) ||
     NON_NOUNS.has(first) ||
     NON_NOUNS.has(second) ||
@@ -779,57 +875,154 @@ function shouldSkipPhrase(first, second) {
   );
 }
 
+function simpleNounRoot(word) {
+  let root = word.replace(/(lar|ler)$/i, "");
+
+  if (SAFE_NOUN_ROOTS.has(root) || COMMON_NOUNS.has(root)) return root;
+
+  root = root.replace(/(ları|leri|sı|si|su|sü)$/i, "");
+  if (SAFE_NOUN_ROOTS.has(root) || COMMON_NOUNS.has(root)) return root;
+
+  root = word.replace(/[ıiuü]$/i, "");
+  const softened = root.replace(/c$/i, "ç").replace(/ğ$/i, "k").replace(/d$/i, "t").replace(/b$/i, "p");
+
+  if (SAFE_NOUN_ROOTS.has(root) || COMMON_NOUNS.has(root)) return root;
+  if (SAFE_NOUN_ROOTS.has(softened) || COMMON_NOUNS.has(softened)) return softened;
+
+  return word;
+}
+
+function isSimpleNoun(word) {
+  const root = simpleNounRoot(word);
+
+  return (
+    SAFE_NOUN_ROOTS.has(root) ||
+    COMMON_NOUNS.has(root) ||
+    (
+      root.length > 2 &&
+      !STOP_WORDS.has(root) &&
+      !NON_NOUNS.has(root) &&
+      !SAFE_ADJECTIVES.has(root) &&
+      !COMMON_DETERMINERS.has(root) &&
+      !isLikelyVerbPredicate(root)
+    )
+  );
+}
+
+function isSimpleTamlanan(word) {
+  if (SAFE_NOUN_ROOTS.has(word) || COMMON_NOUNS.has(word)) return false;
+
+  const withoutFinalVowel = word.replace(/[ıiuü]$/i, "");
+  const softened = withoutFinalVowel.replace(/c$/i, "ç").replace(/ğ$/i, "k").replace(/d$/i, "t").replace(/b$/i, "p");
+
+  return (
+    /(sı|si|su|sü|ları|leri)$/.test(word) ||
+    /(ını|ini|unu|ünü|sını|sini|sunu|sünü)$/.test(word) ||
+    /(ından|inden|undan|ünden|sından|sinden|sundan|sünden)$/.test(word) ||
+    SAFE_NOUN_ROOTS.has(withoutFinalVowel) ||
+    SAFE_NOUN_ROOTS.has(softened)
+  );
+}
+
+function cleanPhraseWord(word) {
+  return word.replace(/(da|de|ta|te|dan|den|tan|ten)$/i, "");
+}
+
+function formatPhrase(words, type) {
+  return `${words.map(cleanPhraseWord).join(" ")} (${type})`;
+}
+
 function findPhrases(paragraph) {
-  const words = tokenize(paragraph);
-  const normalized = words.map(cleanWord);
   const nounPhrases = [];
   const adjectivePhrases = [];
+  const segments = paragraph
+    .split(/[,.!?;:]+/)
+    .map((segment) => segment.trim())
+    .filter(Boolean);
 
-  for (let index = 0; index < words.length - 1; index += 1) {
-    const first = normalized[index];
-    const second = normalized[index + 1];
-    const firstBase = getPhraseRoot(first);
-    const secondBase = getPhraseRoot(second);
-    const pair = `${words[index]} ${words[index + 1]}`;
+  for (const segment of segments) {
+    const words = tokenize(segment);
+    const normalized = words.map(cleanWord);
 
-    const third = normalized[index + 2];
-    if (third) {
-      const thirdBase = getPhraseRoot(third);
-      const threeWordPhrase = `${words[index]} ${words[index + 1]} ${words[index + 2]}`;
+    for (let index = 0; index < words.length - 1; index += 1) {
+      const first = normalized[index];
+      const second = normalized[index + 1];
+      const firstBase = getPhraseRoot(first);
+      const secondBase = getPhraseRoot(second);
+
+      const third = normalized[index + 2];
+      if (third) {
+        const thirdBase = getPhraseRoot(third);
+
+        if (
+          isLikelyAdjectiveWord(first) &&
+          second === "bir" &&
+          !STOP_WORDS.has(third) &&
+          !NON_NOUNS.has(third) &&
+          !isLikelyVerbPredicate(third) &&
+          (isLikelyNoun(thirdBase) || third.length > 3)
+        ) {
+          adjectivePhrases.push(formatPhrase([words[index], words[index + 1], words[index + 2]], "belirtme sıfatı"));
+        }
+      }
+
+      const secondTamlanan = isSimpleTamlanan(second);
+      const nounPhraseType = hasGenitiveSuffix(first) && secondTamlanan ? "belirtili" : !hasGenitiveSuffix(first) && secondTamlanan ? "belirtisiz" : "";
+
+      if (
+        nounPhraseType &&
+        isSimpleNoun(first) &&
+        isSimpleNoun(second) &&
+        !isLikelyAdjectiveWord(first) &&
+        !(hasTamlananSuffix(first) && !hasGenitiveSuffix(first)) &&
+        !isParticipleLike(second) &&
+        (nounPhraseType === "belirtili" || !isVerbalNounLike(first))
+      ) {
+        nounPhrases.push(formatPhrase([words[index], words[index + 1]], nounPhraseType));
+        continue;
+      }
 
       if (
         isLikelyAdjectiveWord(first) &&
-        second === "bir" &&
-        !STOP_WORDS.has(third) &&
-        !NON_NOUNS.has(third) &&
-        !isLikelyVerbPredicate(third) &&
-        (isLikelyNoun(thirdBase) || third.length > 3)
+        isSimpleNoun(second) &&
+        !secondTamlanan
       ) {
-        adjectivePhrases.push(threeWordPhrase);
+        const adjectiveType =
+          COMMON_DETERMINERS.has(first) || NUMBER_WORDS.has(first) || /^(kaç|kaçıncı|hangi)$/.test(first) || /^\d+$/.test(first)
+            ? "belirtme sıfatı"
+            : "niteleme sıfatı";
+        adjectivePhrases.push(formatPhrase([words[index], words[index + 1]], adjectiveType));
+        continue;
       }
-    }
 
-    if (shouldSkipPhrase(first, second)) continue;
+      if (shouldSkipPhrase(first, second)) continue;
 
-    const firstHasGenitive = hasGenitiveSuffix(first);
-    const secondHasPossessive = hasPossessiveSuffix(second);
-    const bareNounWithPossessive =
-      !firstHasGenitive &&
-      isLikelyNoun(firstBase) &&
-      (hasStrongPossessiveSuffix(second) || (secondHasPossessive && isLikelyNoun(secondBase)));
-    const markedNounPhrase = firstHasGenitive && secondHasPossessive;
+      const legacyNounPhraseType = classifyNounPhrase(first, second);
 
-    if ((markedNounPhrase || bareNounWithPossessive) && isLikelyNoun(firstBase) && isLikelyNoun(secondBase)) {
-      nounPhrases.push(pair);
-      continue;
-    }
+      if (
+        legacyNounPhraseType &&
+        isLikelyNoun(firstBase) &&
+        isLikelyNoun(secondBase) &&
+        !(hasTamlananSuffix(first) && !hasGenitiveSuffix(first)) &&
+        !isParticipleLike(second) &&
+        !isLikelyAdjectiveWord(first) &&
+        (legacyNounPhraseType === "belirtili" || !isVerbalNounLike(first))
+      ) {
+        nounPhrases.push(formatPhrase([words[index], words[index + 1]], legacyNounPhraseType));
+        continue;
+      }
 
-    if (
-      isLikelyAdjectiveWord(first) &&
-      isLikelyNoun(secondBase) &&
-      (!secondHasPossessive || !COMMON_DETERMINERS.has(first))
-    ) {
-      adjectivePhrases.push(pair);
+      if (
+        isLikelyAdjectiveWord(first) &&
+        isLikelyNoun(secondBase) &&
+        !hasTamlananSuffix(second)
+      ) {
+        const adjectiveType =
+          COMMON_DETERMINERS.has(first) || NUMBER_WORDS.has(first) || /^(kaç|kaçıncı|hangi)$/.test(first) || /^\d+$/.test(first)
+            ? "belirtme sıfatı"
+            : "niteleme sıfatı";
+        adjectivePhrases.push(formatPhrase([words[index], words[index + 1]], adjectiveType));
+      }
     }
   }
 
@@ -875,12 +1068,12 @@ export function analyzeLanguage(paragraph) {
     nounPhrases: {
       label: "İsim tamlamaları",
       items: phrases.nounPhrases,
-      explanation: "Bir ismin başka bir isimle anlamca tamamlandığı söz öbekleri.",
+      explanation: "Belirtili: tamlayan ve tamlanan ek alır. Belirtisiz: tamlayan ek almaz, tamlanan iyelik eki alır.",
     },
     adjectivePhrases: {
       label: "Sıfat tamlamaları",
       items: phrases.adjectivePhrases,
-      explanation: "Bir sıfatın bir ismi nitelediği ya da belirttiği söz öbekleri.",
+      explanation: "Sıfat + isim yapısındaki niteleme ya da belirtme görevli söz öbekleri.",
     },
   };
 }
