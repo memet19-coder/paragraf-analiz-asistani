@@ -227,7 +227,26 @@ const NON_ADJECTIVE_WORDS = new Set([
 
 const TOPIC_PROFILES = [
   {
-    terms: ["belgelerim", "yazar", "öykü", "öyküler", "gerçek", "kurmaca", "tasarlamış", "anlatılanların"],
+    terms: ["yazar adayları", "kitap okumuyorum", "etkisinde", "etkilenmek", "ilham", "üslubunu", "yazma alışkanlığı", "kendi tarzınızı"],
+    topic: "yazar adaylarının başka yazarlardan etkilenerek kendi yazma tarzlarını geliştirmesi",
+    mainIdea:
+      "Sevilen yazarlardan etkilenmek, yazmaya yeni başlayan kişiler için olumsuz değil; yazma alışkanlığı ve özgün tarz kazanma sürecini destekleyen bir durumdur.",
+    direct: "Metinde, sevilen bir yazardan etkilenmenin sanıldığı gibi olumsuz olmadığı belirtilmektedir.",
+    inference: "Bir yazar adayının başlangıçta başkalarının üslubundan etkilenmesi, zamanla kendi anlatımını bulmasına yardımcı olabilir.",
+    wrong: "Yazar adaylarının iyi yazabilmesi için başka yazarları okumaktan tamamen kaçınması gerekir.",
+    topicWrong: "Yazarların kitap okuma alışkanlığını tamamen bırakması",
+    title: "Etkilenmekten Özgünlüğe",
+    titleOptions: ["Yazarlıkta İlhamın Önemi", "Okuyarak Yazmayı Öğrenmek", "Üsluptan Tarza Giden Yol"],
+    textType: "Tartışmacı anlatım",
+    answeredQuestion: "Yazar adayları başka yazarlardan etkilenmeyi nasıl değerlendirmelidir?",
+    support: [
+      "Sevilen bir yazardan etkilenmek olumsuz bir durum olarak görülmemelidir.",
+      "Başka bir yazar, yazmaya başlayan kişi için ilham kaynağı olabilir.",
+      "Bu süreç kişiye yazma alışkanlığı kazandırıp zamanla kendi tarzını bulmasına yardım eder.",
+    ],
+  },
+  {
+    terms: ["belgelerim", "gerçekmiş", "kurmaca", "tasarlamış", "anlatılanların", "yaşanmışlık", "gerçeklik izlenimi"],
     topic: "yazarın kurmaca metinlerde gerçeklik izlenimi oluşturma çabası",
     mainIdea:
       "Yazar, anlatılarını gerçek belgelere dayanıyormuş gibi kurgulayarak okurda yaşanmışlık duygusu uyandırmak istemiştir.",
@@ -1081,6 +1100,41 @@ export function analyzeLanguage(paragraph) {
 
 function getExamStyleChoices(analysis) {
   const topicText = normalize(`${analysis.topic} ${analysis.title}`);
+
+  if (topicText.includes("yazar aday") || topicText.includes("etkilenmekten")) {
+    return {
+      mainIdeaCorrect: "Başka yazarlardan etkilenmenin kişinin kendi yazma tarzını bulmasına katkı sağlayabileceği",
+      directCorrect: "Sevilen bir yazardan etkilenmenin olumsuz bir durum olmadığı",
+      inferenceCorrect: "Yazmaya yeni başlayanların başkalarından etkilenerek zamanla özgünleşebileceği",
+      notSaidCorrect: "Yazar adaylarının başarılı olmak için kitap okumaktan uzak durması gerektiği",
+      topicCorrect: "Yazar adaylarının başka yazarlardan etkilenme süreci",
+      mainIdeaWrong: [
+        "Yazar adaylarının yalnızca kısa yazılar yazması gerektiği",
+        "Başka yazarların üslubunu tanımanın özgünlüğü tamamen yok ettiği",
+        "Okuma alışkanlığının yazma becerisiyle ilişkisinin bulunmadığı",
+      ],
+      directWrong: [
+        "Yazar adaylarının hiçbir yazardan etkilenmemesi gerektiği",
+        "Uzun hikâyelerin kısa yazılardan önce yazılması gerektiği",
+        "Kendi tarzını bulmanın yalnızca doğuştan gelen yeteneğe bağlı olduğu",
+      ],
+      inferenceWrong: [
+        "Bir yazardan etkilenmek yazarlık sürecini bütünüyle engeller",
+        "Yazma alışkanlığı kazanmak için okumaya ihtiyaç yoktur",
+        "Özgün üslup, deneme yapmadan kendiliğinden oluşur",
+      ],
+      topicWrong: [
+        "Kitap okumamanın yazarlığa sağladığı yararlar",
+        "Yazarların eserlerini yayımlama aşamaları",
+        "Hikâye türünün tarihsel gelişimi",
+      ],
+      notSaidTruths: [
+        "Sevilen bir yazardan etkilenmek olumsuz bir durum olarak görülmemelidir.",
+        "Başka bir yazar, yazmaya başlayan kişi için ilham kaynağı olabilir.",
+        "Zamanla farklı şeyler denenerek kişinin kendi tarzı bulunabilir.",
+      ],
+    };
+  }
 
   if (topicText.includes("kurmaca") || topicText.includes("öykü")) {
     return {
