@@ -44,5 +44,5 @@ app.get(/^(?!\/api).*/, (request, response) => {
 });
 
 app.listen(port, "0.0.0.0", () => {
-  console.log(`Paragraf Soru Asistanı hazır: http://127.0.0.1:${port}`);
+  console.log(`Odak Atölyesi hazır: http://127.0.0.1:${port}`);
 });
