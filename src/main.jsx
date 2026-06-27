@@ -183,7 +183,7 @@ function getTimedSessionSeconds(level) {
   return Math.max(TIMED_SESSION_MIN_SECONDS, TIMED_SESSION_BASE_SECONDS - (clamp(level, 1, MAX_LEVEL) - 1) * 2);
 }
 
-function makeTimedSession(level) {
+function makeTimedSession(level, score = 0, mistakes = 0) {
   const totalSeconds = getTimedSessionSeconds(level);
 
   return {
@@ -191,8 +191,8 @@ function makeTimedSession(level) {
     finished: false,
     secondsLeft: totalSeconds,
     totalSeconds,
-    score: 0,
-    mistakes: 0,
+    score,
+    mistakes,
   };
 }
 
@@ -707,7 +707,7 @@ function ChallengeDisplay({ challenge, phase }) {
   );
 }
 
-function GamePanel({ challenge, exercise, onAnswer, phase, progress, result, selectedOption, timedSession, onRestartTimed }) {
+function GamePanel({ challenge, exercise, onAnswer, phase, progress, result, selectedOption, timedSession }) {
   const Icon = exercise.icon;
   const tone = toneStyles[exercise.tone] || toneStyles.blue;
   const levelPercent = (progress.level / MAX_LEVEL) * 100;
@@ -769,26 +769,7 @@ function GamePanel({ challenge, exercise, onAnswer, phase, progress, result, sel
 
       <ChallengeDisplay challenge={challenge} phase={phase} />
 
-      {timedSession?.finished ? (
-        <div className="mt-4 rounded-lg border border-orange-200 bg-orange-50 p-5">
-          <div className="mb-2 flex items-center gap-2 text-base font-black text-orange-950">
-            <Sparkles size={19} />
-            Süre bitti
-          </div>
-          <p className="text-sm leading-6 text-slate-800">
-            Bu turda <strong>{timedSession.score}</strong> doğru, <strong>{timedSession.mistakes}</strong> hata yaptın.
-            Yeni turda süre, bulunduğun seviyeye göre tekrar başlayacak.
-          </p>
-          <button
-            className="mt-4 inline-flex h-11 items-center justify-center gap-2 rounded-full bg-slate-950 px-5 text-sm font-black text-white transition hover:bg-slate-800"
-            onClick={onRestartTimed}
-            type="button"
-          >
-            <RotateCcw size={16} />
-            Yeniden başlat
-          </button>
-        </div>
-      ) : phase === "preview" ? (
+      {phase === "preview" ? (
         <div className="mt-4 rounded-lg bg-slate-50 px-4 py-3 text-center text-sm font-bold text-slate-600">
           Diziyi aklında tut. Seçenekler birazdan açılacak.
         </div>
@@ -820,11 +801,11 @@ function GamePanel({ challenge, exercise, onAnswer, phase, progress, result, sel
         </div>
       )}
 
-      {result && !timedSession?.finished ? (
+      {result ? (
         <div className={`mt-4 rounded-lg border p-4 ${result.correct ? "border-emerald-200 bg-emerald-50" : "border-red-200 bg-red-50"}`}>
           <div className={`mb-1 flex items-center gap-2 text-sm font-bold ${result.correct ? "text-emerald-900" : "text-red-900"}`}>
             {result.correct ? <CheckCircle2 size={17} /> : <XCircle size={17} />}
-            {result.correct ? "Doğru" : "Tekrar denemeye değer"}
+            {result.timedOut ? "Süre doldu" : result.correct ? "Doğru" : "Tekrar denemeye değer"}
           </div>
           <p className="text-sm leading-6 text-slate-800">
             Doğru cevap: <strong>{challenge.answerText}</strong>
@@ -881,34 +862,31 @@ function App() {
 
   useEffect(() => {
     if (!result) return undefined;
-    if (timedSession.finished) return undefined;
 
     const timer = window.setTimeout(() => {
-      startNewChallenge();
-    }, result.correct ? 650 : 1200);
+      startNewChallenge(progress, activeExercise.id);
+    }, result.correct ? 650 : 1100);
 
     return () => window.clearTimeout(timer);
-  }, [result, timedSession.finished]);
+  }, [activeExercise.id, progress, result]);
 
   useEffect(() => {
-    if (screen !== "play" || !timedSession.active || timedSession.finished) return undefined;
+    if (screen !== "play" || phase !== "answer" || result || !timedSession.active) return undefined;
 
     if (timedSession.secondsLeft <= 0) {
-      setTimedSession((current) => ({ ...current, active: false, finished: true, secondsLeft: 0 }));
-      setResult(null);
-      setSelectedOption(null);
+      handleTimeout();
       return undefined;
     }
 
     const timer = window.setTimeout(() => {
       setTimedSession((current) => {
-        if (!current.active || current.finished) return current;
+        if (!current.active) return current;
         return { ...current, secondsLeft: Math.max(0, current.secondsLeft - 1) };
       });
     }, 1000);
 
     return () => window.clearTimeout(timer);
-  }, [screen, timedSession.active, timedSession.finished, timedSession.secondsLeft]);
+  }, [phase, result, screen, timedSession.active, timedSession.secondsLeft]);
 
   function startNewChallenge(nextProgress = progress, nextId = activeExercise.id) {
     const nextChallenge = generateExercise(nextId, nextProgress[nextId].level);
@@ -916,6 +894,10 @@ function App() {
     setPhase(nextChallenge.preview ? "preview" : "answer");
     setSelectedOption(null);
     setResult(null);
+    setTimedSession((current) => {
+      if (!current.active) return current;
+      return makeTimedSession(nextProgress[nextId].level, current.score, current.mistakes);
+    });
   }
 
   function startTimedSession(nextProgress = progress, exerciseId = activeExercise.id) {
@@ -953,33 +935,41 @@ function App() {
 
   function handleAnswer(item) {
     if (result) return;
-    if (timedSession.finished) return;
+    finishRound(item);
+  }
 
+  function finishRound(item, timedOut = false) {
     const current = progress[activeExercise.id];
-    const nextStreak = item.correct ? current.streak + 1 : 0;
-    const leveledUp = item.correct && nextStreak >= LEVEL_UP_STREAK && current.level < MAX_LEVEL;
+    const correct = Boolean(item?.correct) && !timedOut;
+    const nextStreak = correct ? current.streak + 1 : 0;
+    const leveledUp = correct && nextStreak >= LEVEL_UP_STREAK && current.level < MAX_LEVEL;
     const nextLevel = leveledUp ? current.level + 1 : current.level;
     const nextProgress = {
       ...progress,
       [activeExercise.id]: {
         level: nextLevel,
         bestLevel: Math.max(current.bestLevel, nextLevel),
-        correct: current.correct + (item.correct ? 1 : 0),
+        correct: current.correct + (correct ? 1 : 0),
         attempts: current.attempts + 1,
         streak: leveledUp ? 0 : nextStreak,
       },
     };
 
     setSelectedOption(item);
-    setResult({ correct: item.correct, leveledUp });
+    setResult({ correct, leveledUp, timedOut });
     setProgress(nextProgress);
     if (timedSession.active) {
       setTimedSession((currentSession) => ({
         ...currentSession,
-        score: currentSession.score + (item.correct ? 1 : 0),
-        mistakes: currentSession.mistakes + (item.correct ? 0 : 1),
+        score: currentSession.score + (correct ? 1 : 0),
+        mistakes: currentSession.mistakes + (correct ? 0 : 1),
       }));
     }
+  }
+
+  function handleTimeout() {
+    if (result) return;
+    finishRound(null, true);
   }
 
   function resetCurrent() {
@@ -1111,7 +1101,6 @@ function App() {
             challenge={challenge}
             exercise={activeExercise}
             onAnswer={handleAnswer}
-            onRestartTimed={() => startTimedSession(progress, activeExercise.id)}
             phase={phase}
             progress={activeProgress}
             result={result}
