@@ -27,6 +27,8 @@ import "./styles.css";
 const STORAGE_KEY = "odak-atolyesi-progress";
 const MAX_LEVEL = 10;
 const LEVEL_UP_STREAK = 3;
+const COLOR_SESSION_BASE_SECONDS = 28;
+const COLOR_SESSION_MIN_SECONDS = 10;
 
 const colors = [
   { name: "Kırmızı", hex: "#dc2626", bg: "bg-red-500" },
@@ -176,6 +178,32 @@ function makeProgress() {
     return progress;
   }, {});
 }
+
+function getColorSessionSeconds(level) {
+  return Math.max(COLOR_SESSION_MIN_SECONDS, COLOR_SESSION_BASE_SECONDS - (clamp(level, 1, MAX_LEVEL) - 1) * 2);
+}
+
+function makeColorSession(level) {
+  const totalSeconds = getColorSessionSeconds(level);
+
+  return {
+    active: true,
+    finished: false,
+    secondsLeft: totalSeconds,
+    totalSeconds,
+    score: 0,
+    mistakes: 0,
+  };
+}
+
+const emptyColorSession = {
+  active: false,
+  finished: false,
+  secondsLeft: 0,
+  totalSeconds: 0,
+  score: 0,
+  mistakes: 0,
+};
 
 function readProgress() {
   try {
@@ -679,10 +707,12 @@ function ChallengeDisplay({ challenge, phase }) {
   );
 }
 
-function GamePanel({ challenge, exercise, onAnswer, phase, progress, result, selectedOption }) {
+function GamePanel({ challenge, exercise, onAnswer, phase, progress, result, selectedOption, timedSession, onRestartTimed }) {
   const Icon = exercise.icon;
   const tone = toneStyles[exercise.tone] || toneStyles.blue;
   const levelPercent = (progress.level / MAX_LEVEL) * 100;
+  const hasTimer = Boolean(timedSession?.active || timedSession?.finished);
+  const timePercent = hasTimer && timedSession.totalSeconds > 0 ? (timedSession.secondsLeft / timedSession.totalSeconds) * 100 : 0;
 
   return (
     <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
@@ -714,13 +744,51 @@ function GamePanel({ challenge, exercise, onAnswer, phase, progress, result, sel
         </div>
       </div>
 
+      {hasTimer ? (
+        <div className="mb-4 rounded-lg border border-orange-100 bg-orange-50 p-4">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.18em] text-orange-500">Süreli tur</p>
+              <p className="text-sm font-bold text-orange-950">Süre bitene kadar doğru rengi seç.</p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2 text-sm font-black text-orange-950">
+              <span className="rounded-full bg-white px-3 py-1">{timedSession.secondsLeft} sn</span>
+              <span className="rounded-full bg-white px-3 py-1">{timedSession.score} doğru</span>
+              <span className="rounded-full bg-white px-3 py-1">{timedSession.mistakes} hata</span>
+            </div>
+          </div>
+          <div className="h-3 overflow-hidden rounded-full bg-white">
+            <div className="h-full rounded-full bg-orange-500 transition-all" style={{ width: `${timePercent}%` }} />
+          </div>
+        </div>
+      ) : null}
+
       <div className="mb-4 rounded-lg border border-slate-100 bg-slate-50 p-4">
         <p className="text-base font-black leading-7 text-slate-950">{challenge.prompt}</p>
       </div>
 
       <ChallengeDisplay challenge={challenge} phase={phase} />
 
-      {phase === "preview" ? (
+      {timedSession?.finished ? (
+        <div className="mt-4 rounded-lg border border-orange-200 bg-orange-50 p-5">
+          <div className="mb-2 flex items-center gap-2 text-base font-black text-orange-950">
+            <Sparkles size={19} />
+            Süre bitti
+          </div>
+          <p className="text-sm leading-6 text-slate-800">
+            Bu turda <strong>{timedSession.score}</strong> doğru, <strong>{timedSession.mistakes}</strong> hata yaptın.
+            Yeni turda süre, bulunduğun seviyeye göre tekrar başlayacak.
+          </p>
+          <button
+            className="mt-4 inline-flex h-11 items-center justify-center gap-2 rounded-full bg-slate-950 px-5 text-sm font-black text-white transition hover:bg-slate-800"
+            onClick={onRestartTimed}
+            type="button"
+          >
+            <RotateCcw size={16} />
+            Yeniden başlat
+          </button>
+        </div>
+      ) : phase === "preview" ? (
         <div className="mt-4 rounded-lg bg-slate-50 px-4 py-3 text-center text-sm font-bold text-slate-600">
           Diziyi aklında tut. Seçenekler birazdan açılacak.
         </div>
@@ -752,7 +820,7 @@ function GamePanel({ challenge, exercise, onAnswer, phase, progress, result, sel
         </div>
       )}
 
-      {result ? (
+      {result && !timedSession?.finished ? (
         <div className={`mt-4 rounded-lg border p-4 ${result.correct ? "border-emerald-200 bg-emerald-50" : "border-red-200 bg-red-50"}`}>
           <div className={`mb-1 flex items-center gap-2 text-sm font-bold ${result.correct ? "text-emerald-900" : "text-red-900"}`}>
             {result.correct ? <CheckCircle2 size={17} /> : <XCircle size={17} />}
@@ -781,6 +849,7 @@ function App() {
   const [phase, setPhase] = useState(challenge.preview ? "preview" : "answer");
   const [selectedOption, setSelectedOption] = useState(null);
   const [result, setResult] = useState(null);
+  const [timedSession, setTimedSession] = useState(emptyColorSession);
 
   const totals = useMemo(() => {
     const values = Object.values(progress);
@@ -812,13 +881,34 @@ function App() {
 
   useEffect(() => {
     if (!result) return undefined;
+    if (activeExercise.id === "renk" && timedSession.finished) return undefined;
 
     const timer = window.setTimeout(() => {
       startNewChallenge();
     }, result.correct ? 650 : 1200);
 
     return () => window.clearTimeout(timer);
-  }, [result]);
+  }, [activeExercise.id, result, timedSession.finished]);
+
+  useEffect(() => {
+    if (screen !== "play" || activeExercise.id !== "renk" || !timedSession.active || timedSession.finished) return undefined;
+
+    if (timedSession.secondsLeft <= 0) {
+      setTimedSession((current) => ({ ...current, active: false, finished: true, secondsLeft: 0 }));
+      setResult(null);
+      setSelectedOption(null);
+      return undefined;
+    }
+
+    const timer = window.setTimeout(() => {
+      setTimedSession((current) => {
+        if (!current.active || current.finished) return current;
+        return { ...current, secondsLeft: Math.max(0, current.secondsLeft - 1) };
+      });
+    }, 1000);
+
+    return () => window.clearTimeout(timer);
+  }, [activeExercise.id, screen, timedSession.active, timedSession.finished, timedSession.secondsLeft]);
 
   function startNewChallenge(nextProgress = progress, nextId = activeExercise.id) {
     const nextChallenge = generateExercise(nextId, nextProgress[nextId].level);
@@ -828,9 +918,19 @@ function App() {
     setResult(null);
   }
 
+  function startColorSession(nextProgress = progress) {
+    setTimedSession(makeColorSession(nextProgress.renk.level));
+    startNewChallenge(nextProgress, "renk");
+  }
+
   function selectExercise(exerciseId) {
     setActiveId(exerciseId);
     setScreen("play");
+    if (exerciseId === "renk") {
+      startColorSession(progress);
+      return;
+    }
+    setTimedSession(emptyColorSession);
     startNewChallenge(progress, exerciseId);
   }
 
@@ -845,6 +945,7 @@ function App() {
     setActiveId(null);
     setSelectedOption(null);
     setResult(null);
+    setTimedSession(emptyColorSession);
   }
 
   function backToCategory() {
@@ -852,10 +953,12 @@ function App() {
     setActiveId(null);
     setSelectedOption(null);
     setResult(null);
+    setTimedSession(emptyColorSession);
   }
 
   function handleAnswer(item) {
     if (result) return;
+    if (activeExercise.id === "renk" && timedSession.finished) return;
 
     const current = progress[activeExercise.id];
     const nextStreak = item.correct ? current.streak + 1 : 0;
@@ -875,6 +978,13 @@ function App() {
     setSelectedOption(item);
     setResult({ correct: item.correct, leveledUp });
     setProgress(nextProgress);
+    if (activeExercise.id === "renk") {
+      setTimedSession((currentSession) => ({
+        ...currentSession,
+        score: currentSession.score + (item.correct ? 1 : 0),
+        mistakes: currentSession.mistakes + (item.correct ? 0 : 1),
+      }));
+    }
   }
 
   function resetCurrent() {
@@ -883,6 +993,10 @@ function App() {
       [activeExercise.id]: { level: 1, bestLevel: progress[activeExercise.id].bestLevel, correct: 0, attempts: 0, streak: 0 },
     };
     setProgress(nextProgress);
+    if (activeExercise.id === "renk") {
+      startColorSession(nextProgress);
+      return;
+    }
     startNewChallenge(nextProgress, activeExercise.id);
   }
 
@@ -990,10 +1104,12 @@ function App() {
             challenge={challenge}
             exercise={activeExercise}
             onAnswer={handleAnswer}
+            onRestartTimed={() => startColorSession(progress)}
             phase={phase}
             progress={activeProgress}
             result={result}
             selectedOption={selectedOption}
+            timedSession={activeExercise.id === "renk" ? timedSession : null}
           />
 
           <section className="mt-5 grid gap-3 sm:grid-cols-3">
