@@ -172,6 +172,22 @@ function makeNumberOptions(correct, min = 0, max = 30) {
   return shuffle([...values]).map((value) => option(String(value), value === correct));
 }
 
+function makeMathOptions(correct) {
+  const offsets = correct > 80 ? [2, 4, 6, 10, 12] : correct > 30 ? [1, 2, 3, 5, 8] : [1, 2, 3, 4, 5];
+  const values = new Set([correct]);
+
+  offsets.forEach((offset) => {
+    if (values.size < 4) values.add(Math.max(0, correct + offset));
+    if (values.size < 4) values.add(Math.max(0, correct - offset));
+  });
+
+  while (values.size < 4) {
+    values.add(correct + values.size + 1);
+  }
+
+  return shuffle([...values]).map((value) => option(String(value), value === correct));
+}
+
 function makeProgress() {
   return exercises.reduce((progress, exercise) => {
     progress[exercise.id] = { level: 1, bestLevel: 1, correct: 0, attempts: 0, streak: 0 };
@@ -342,17 +358,70 @@ function generateDifferenceTask(level) {
 }
 
 function generateSumTask(level) {
-  const operations = level < 3 ? ["+"] : level < 6 ? ["+", "-"] : ["+", "-", "×"];
-  const operation = randomItem(operations);
-  const first = Math.floor(Math.random() * (8 + level * 2)) + 2;
-  const second = Math.floor(Math.random() * (operation === "×" ? 8 : 8 + level)) + 2;
-  const expression = operation === "-" ? `${Math.max(first, second)} - ${Math.min(first, second)}` : `${first} ${operation} ${second}`;
-  const correct = operation === "+" ? first + second : operation === "-" ? Math.max(first, second) - Math.min(first, second) : first * second;
+  let expression = "";
+  let correct = 0;
+
+  if (level <= 1) {
+    const first = Math.floor(Math.random() * 8) + 2;
+    const second = Math.floor(Math.random() * 8) + 2;
+    expression = `${first} + ${second}`;
+    correct = first + second;
+  } else if (level <= 2) {
+    const operation = randomItem(["+", "-"]);
+    const first = Math.floor(Math.random() * 16) + 5;
+    const second = Math.floor(Math.random() * 9) + 2;
+    expression = operation === "-" ? `${first} - ${Math.min(first - 1, second)}` : `${first} + ${second}`;
+    correct = operation === "-" ? first - Math.min(first - 1, second) : first + second;
+  } else if (level <= 3) {
+    const operation = randomItem(["+", "-"]);
+    const first = Math.floor(Math.random() * 35) + 15;
+    const second = Math.floor(Math.random() * 25) + 10;
+    expression = operation === "-" ? `${Math.max(first, second)} - ${Math.min(first, second)}` : `${first} + ${second}`;
+    correct = operation === "-" ? Math.max(first, second) - Math.min(first, second) : first + second;
+  } else if (level <= 4) {
+    const first = Math.floor(Math.random() * 8) + 2;
+    const second = Math.floor(Math.random() * 8) + 2;
+    expression = `${first} × ${second}`;
+    correct = first * second;
+  } else if (level <= 5) {
+    const first = Math.floor(Math.random() * 20) + 10;
+    const second = Math.floor(Math.random() * 16) + 5;
+    const third = Math.floor(Math.random() * 9) + 2;
+    const operation = randomItem(["+", "-"]);
+    expression = operation === "-" ? `${first} + ${second} - ${third}` : `${first} + ${second} + ${third}`;
+    correct = operation === "-" ? first + second - third : first + second + third;
+  } else if (level <= 6) {
+    const operation = randomItem(["×", "÷"]);
+    const first = Math.floor(Math.random() * 11) + 2;
+    const second = Math.floor(Math.random() * 10) + 2;
+    expression = operation === "÷" ? `${first * second} ÷ ${first}` : `${first} × ${second}`;
+    correct = operation === "÷" ? second : first * second;
+  } else if (level <= 7) {
+    const first = Math.floor(Math.random() * 9) + 3;
+    const second = Math.floor(Math.random() * 8) + 2;
+    const third = Math.floor(Math.random() * 18) + 5;
+    const operation = randomItem(["+", "-"]);
+    expression = operation === "-" ? `${first} × ${second} - ${third}` : `${first} × ${second} + ${third}`;
+    correct = operation === "-" ? first * second - third : first * second + third;
+  } else if (level <= 8) {
+    const first = Math.floor(Math.random() * 16) + 8;
+    const second = Math.floor(Math.random() * 12) + 4;
+    const third = Math.floor(Math.random() * 4) + 2;
+    expression = `(${first} + ${second}) × ${third}`;
+    correct = (first + second) * third;
+  } else {
+    const first = Math.floor(Math.random() * 8) + 4;
+    const second = Math.floor(Math.random() * 8) + 3;
+    const third = Math.floor(Math.random() * 7) + 3;
+    const fourth = Math.floor(Math.random() * 7) + 2;
+    expression = `${first} × ${second} + ${third} × ${fourth}`;
+    correct = first * second + third * fourth;
+  }
 
   return {
     prompt: "İşlemin sonucunu hızlıca seç.",
     display: { type: "mathExpression", expression },
-    options: makeNumberOptions(correct, 0, Math.max(30, correct + 10)),
+    options: makeMathOptions(correct),
     answerText: String(correct),
   };
 }
@@ -454,17 +523,44 @@ function generateCodeTask(level) {
 }
 
 function generatePatternTask(level) {
-  const base = shuffle(shapeSymbols).slice(0, clamp(2 + Math.floor(level / 4), 2, 4));
-  const length = clamp(5 + Math.floor(level / 2), 5, 9);
-  const sequence = Array.from({ length }, (_, index) => base[index % base.length]);
-  const correct = base[length % base.length];
+  const base = shuffle(shapeSymbols).slice(0, clamp(2 + Math.floor(level / 3), 2, 5));
+  let pattern = [];
+  let prompt = "Desende sıradaki şekli seç.";
+
+  if (level <= 2) {
+    pattern = Array.from({ length: 10 }, (_, index) => base[index % 2]);
+    prompt = "Tekrar eden desende sıradaki şekli seç.";
+  } else if (level <= 4) {
+    pattern = Array.from({ length: 12 }, (_, index) => base[index % base.length]);
+    prompt = "Üçlü veya dörtlü desende sıradaki şekli seç.";
+  } else if (level <= 6) {
+    pattern = Array.from({ length: 14 }, (_, index) => base[Math.floor(index / 2) % base.length]);
+    prompt = "İkili tekrar eden desende sıradaki şekli seç.";
+  } else if (level <= 8) {
+    const blocks = [];
+    for (let round = 0; round < 4; round += 1) {
+      base.slice(0, 3).forEach((shape, shapeIndex) => {
+        blocks.push(...Array.from({ length: shapeIndex + 1 }, () => shape));
+      });
+    }
+    pattern = blocks;
+    prompt = "Büyüyen desende sıradaki şekli seç.";
+  } else {
+    const firstCycle = base.slice(0, 3);
+    const secondCycle = shuffle(shapeSymbols.filter((shape) => !firstCycle.includes(shape))).slice(0, 2);
+    pattern = Array.from({ length: 16 }, (_, index) => (index % 2 === 0 ? firstCycle[Math.floor(index / 2) % firstCycle.length] : secondCycle[Math.floor(index / 2) % secondCycle.length]));
+    prompt = "İç içe ilerleyen desende sıradaki şekli seç.";
+  }
+
+  const length = clamp(5 + Math.floor(level / 2), 5, 11);
+  const sequence = pattern.slice(0, length);
+  const correct = pattern[length];
+  const choices = unique([correct, ...shuffle(shapeSymbols.filter((shape) => shape !== correct))]).slice(0, 4);
 
   return {
-    prompt: "Desende sıradaki şekli seç.",
+    prompt,
     display: { type: "pattern", items: sequence },
-    options: shuffle(shapeSymbols.slice(0, 4).includes(correct) ? shapeSymbols.slice(0, 4) : [correct, ...shapeSymbols.slice(0, 3)]).map((shape) =>
-      option(shape, shape === correct, { shape }),
-    ),
+    options: shuffle(choices).map((shape) => option(shape, shape === correct, { shape })),
     answerText: correct,
   };
 }
