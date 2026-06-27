@@ -27,8 +27,8 @@ import "./styles.css";
 const STORAGE_KEY = "odak-atolyesi-progress";
 const MAX_LEVEL = 10;
 const LEVEL_UP_STREAK = 3;
-const COLOR_SESSION_BASE_SECONDS = 28;
-const COLOR_SESSION_MIN_SECONDS = 10;
+const TIMED_SESSION_BASE_SECONDS = 32;
+const TIMED_SESSION_MIN_SECONDS = 10;
 
 const colors = [
   { name: "Kırmızı", hex: "#dc2626", bg: "bg-red-500" },
@@ -179,12 +179,12 @@ function makeProgress() {
   }, {});
 }
 
-function getColorSessionSeconds(level) {
-  return Math.max(COLOR_SESSION_MIN_SECONDS, COLOR_SESSION_BASE_SECONDS - (clamp(level, 1, MAX_LEVEL) - 1) * 2);
+function getTimedSessionSeconds(level) {
+  return Math.max(TIMED_SESSION_MIN_SECONDS, TIMED_SESSION_BASE_SECONDS - (clamp(level, 1, MAX_LEVEL) - 1) * 2);
 }
 
-function makeColorSession(level) {
-  const totalSeconds = getColorSessionSeconds(level);
+function makeTimedSession(level) {
+  const totalSeconds = getTimedSessionSeconds(level);
 
   return {
     active: true,
@@ -196,7 +196,7 @@ function makeColorSession(level) {
   };
 }
 
-const emptyColorSession = {
+const emptyTimedSession = {
   active: false,
   finished: false,
   secondsLeft: 0,
@@ -749,7 +749,7 @@ function GamePanel({ challenge, exercise, onAnswer, phase, progress, result, sel
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
             <div>
               <p className="text-xs font-black uppercase tracking-[0.18em] text-orange-500">Süreli tur</p>
-              <p className="text-sm font-bold text-orange-950">Süre bitene kadar doğru rengi seç.</p>
+              <p className="text-sm font-bold text-orange-950">Süre bitene kadar soruları çöz.</p>
             </div>
             <div className="flex flex-wrap items-center gap-2 text-sm font-black text-orange-950">
               <span className="rounded-full bg-white px-3 py-1">{timedSession.secondsLeft} sn</span>
@@ -849,7 +849,7 @@ function App() {
   const [phase, setPhase] = useState(challenge.preview ? "preview" : "answer");
   const [selectedOption, setSelectedOption] = useState(null);
   const [result, setResult] = useState(null);
-  const [timedSession, setTimedSession] = useState(emptyColorSession);
+  const [timedSession, setTimedSession] = useState(emptyTimedSession);
 
   const totals = useMemo(() => {
     const values = Object.values(progress);
@@ -881,17 +881,17 @@ function App() {
 
   useEffect(() => {
     if (!result) return undefined;
-    if (activeExercise.id === "renk" && timedSession.finished) return undefined;
+    if (timedSession.finished) return undefined;
 
     const timer = window.setTimeout(() => {
       startNewChallenge();
     }, result.correct ? 650 : 1200);
 
     return () => window.clearTimeout(timer);
-  }, [activeExercise.id, result, timedSession.finished]);
+  }, [result, timedSession.finished]);
 
   useEffect(() => {
-    if (screen !== "play" || activeExercise.id !== "renk" || !timedSession.active || timedSession.finished) return undefined;
+    if (screen !== "play" || !timedSession.active || timedSession.finished) return undefined;
 
     if (timedSession.secondsLeft <= 0) {
       setTimedSession((current) => ({ ...current, active: false, finished: true, secondsLeft: 0 }));
@@ -908,7 +908,7 @@ function App() {
     }, 1000);
 
     return () => window.clearTimeout(timer);
-  }, [activeExercise.id, screen, timedSession.active, timedSession.finished, timedSession.secondsLeft]);
+  }, [screen, timedSession.active, timedSession.finished, timedSession.secondsLeft]);
 
   function startNewChallenge(nextProgress = progress, nextId = activeExercise.id) {
     const nextChallenge = generateExercise(nextId, nextProgress[nextId].level);
@@ -918,20 +918,15 @@ function App() {
     setResult(null);
   }
 
-  function startColorSession(nextProgress = progress) {
-    setTimedSession(makeColorSession(nextProgress.renk.level));
-    startNewChallenge(nextProgress, "renk");
+  function startTimedSession(nextProgress = progress, exerciseId = activeExercise.id) {
+    setTimedSession(makeTimedSession(nextProgress[exerciseId].level));
+    startNewChallenge(nextProgress, exerciseId);
   }
 
   function selectExercise(exerciseId) {
     setActiveId(exerciseId);
     setScreen("play");
-    if (exerciseId === "renk") {
-      startColorSession(progress);
-      return;
-    }
-    setTimedSession(emptyColorSession);
-    startNewChallenge(progress, exerciseId);
+    startTimedSession(progress, exerciseId);
   }
 
   function selectCategory(categoryId) {
@@ -945,7 +940,7 @@ function App() {
     setActiveId(null);
     setSelectedOption(null);
     setResult(null);
-    setTimedSession(emptyColorSession);
+    setTimedSession(emptyTimedSession);
   }
 
   function backToCategory() {
@@ -953,12 +948,12 @@ function App() {
     setActiveId(null);
     setSelectedOption(null);
     setResult(null);
-    setTimedSession(emptyColorSession);
+    setTimedSession(emptyTimedSession);
   }
 
   function handleAnswer(item) {
     if (result) return;
-    if (activeExercise.id === "renk" && timedSession.finished) return;
+    if (timedSession.finished) return;
 
     const current = progress[activeExercise.id];
     const nextStreak = item.correct ? current.streak + 1 : 0;
@@ -978,7 +973,7 @@ function App() {
     setSelectedOption(item);
     setResult({ correct: item.correct, leveledUp });
     setProgress(nextProgress);
-    if (activeExercise.id === "renk") {
+    if (timedSession.active) {
       setTimedSession((currentSession) => ({
         ...currentSession,
         score: currentSession.score + (item.correct ? 1 : 0),
@@ -993,11 +988,15 @@ function App() {
       [activeExercise.id]: { level: 1, bestLevel: progress[activeExercise.id].bestLevel, correct: 0, attempts: 0, streak: 0 },
     };
     setProgress(nextProgress);
-    if (activeExercise.id === "renk") {
-      startColorSession(nextProgress);
-      return;
-    }
-    startNewChallenge(nextProgress, activeExercise.id);
+    startTimedSession(nextProgress, activeExercise.id);
+  }
+
+  function resetAllProgress() {
+    const freshProgress = makeProgress();
+    setProgress(freshProgress);
+    setTimedSession(emptyTimedSession);
+    setSelectedOption(null);
+    setResult(null);
   }
 
   if (screen === "home") {
@@ -1010,6 +1009,14 @@ function App() {
             </div>
             <h1 className="text-4xl font-black tracking-normal sm:text-5xl">Beyin Akademisi</h1>
             <p className="mt-3 text-base font-bold text-white/55">{exercises.length} oyun · 4 kategori · Odaklanmayı geliştir</p>
+            <button
+              className="mt-5 inline-flex h-11 items-center justify-center gap-2 rounded-full border border-white/10 bg-white/10 px-5 text-sm font-black text-white/75 transition hover:bg-white/15"
+              onClick={resetAllProgress}
+              type="button"
+            >
+              <RotateCcw size={16} />
+              Tüm ilerlemeyi sıfırla
+            </button>
           </header>
 
           <section className="mb-5">
@@ -1104,12 +1111,12 @@ function App() {
             challenge={challenge}
             exercise={activeExercise}
             onAnswer={handleAnswer}
-            onRestartTimed={() => startColorSession(progress)}
+            onRestartTimed={() => startTimedSession(progress, activeExercise.id)}
             phase={phase}
             progress={activeProgress}
             result={result}
             selectedOption={selectedOption}
-            timedSession={activeExercise.id === "renk" ? timedSession : null}
+            timedSession={timedSession}
           />
 
           <section className="mt-5 grid gap-3 sm:grid-cols-3">
