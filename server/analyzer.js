@@ -503,7 +503,8 @@ function capitalizeFirst(text) {
 }
 
 function option(text, isCorrect = false) {
-  return { text, isCorrect };
+  const cleanText = typeof text === "string" ? text.replace(/[.!?]\s*$/u, "") : text;
+  return { text: cleanText, isCorrect };
 }
 
 function compactOptions(options) {
@@ -1078,7 +1079,260 @@ export function analyzeLanguage(paragraph) {
   };
 }
 
+function getExamStyleChoices(analysis) {
+  const topicText = normalize(`${analysis.topic} ${analysis.title}`);
+
+  if (topicText.includes("kurmaca") || topicText.includes("öykü")) {
+    return {
+      mainIdeaCorrect: "Kurmaca metinlerde gerçeklik duygusunun bilinçli biçimde oluşturulabileceği",
+      directCorrect: "Yazarın, anlatılanları yaşanmış gibi gösterme amacı taşıdığı",
+      inferenceCorrect: "Okurda gerçeklik izlenimi uyandırmanın yazarın anlatım tercihiyle ilgili olduğu",
+      notSaidCorrect: "Yazarın yalnızca kendi çocukluk anılarını olduğu gibi aktardığı",
+      topicCorrect: "Kurmaca metinlerde gerçeklik izlenimi oluşturma yolları",
+      mainIdeaWrong: [
+        "Belgelerin edebî metinlerde hiçbir işlevinin bulunmadığı",
+        "Öykülerde olay sırasının anlatıcıdan daha önemli olduğu",
+        "Anlatılanların tümüyle rastlantısal biçimde ortaya çıktığı",
+      ],
+      directWrong: [
+        "Metinde belgelerin güvenilirliğinin tartışıldığı",
+        "Yazarın olayları tarih sırasına göre verdiği",
+        "Okurun anlatı karşısında edilgen kaldığı",
+      ],
+      inferenceWrong: [
+        "Kurmaca metinlerin gerçekle hiçbir bağ kuramayacağı",
+        "Yazarın anlatımda yalnızca kanıtlama yoluna başvurduğu",
+        "Öykünün değerinin olayların sırasına bağlı olduğu",
+      ],
+      topicWrong: [
+        "Yazarın çocukluk anılarının kronolojik biçimde aktarılması",
+        "Belgelerin tarih araştırmalarındaki kullanım alanları",
+        "Öykü kişilerinin fiziksel özelliklerinin tanıtılması",
+      ],
+      notSaidTruths: [
+        "Anlatılanlarda yaşanmışlık izlenimi oluşturulmak istenmiştir.",
+        "Gerçeklik duygusu yazarın bilinçli tercihiyle ilişkilidir.",
+        "Belgeler, anlatının inandırıcılığını artıran bir unsur olarak kullanılmıştır.",
+      ],
+    };
+  }
+
+  if (topicText.includes("ekosistem") || topicText.includes("yok oluş")) {
+    return {
+      mainIdeaCorrect: "İnsanın ekosistemin dengesini bozabilecek önemli bir etkiye sahip olduğu",
+      directCorrect: "İnsanın hem ekosistemin bir parçası hem de onun için tehdit kaynağı olduğu",
+      inferenceCorrect: "Türlerin yok oluş hızında insan faaliyetlerinin belirleyici olabileceği",
+      notSaidCorrect: "Canlı türlerinin yok oluşunda insan etkisinin bulunmadığı",
+      topicCorrect: "İnsanın ekosistem üzerindeki etkileri",
+      mainIdeaWrong: [
+        "Doğal afetlerin insan yaşamını bütünüyle olumlu etkilediği",
+        "Ekosistemdeki değişimlerin yalnızca iklim olaylarıyla açıklanabileceği",
+        "Canlı ve cansız varlıklar arasında herhangi bir ilişkinin bulunmadığı",
+      ],
+      directWrong: [
+        "Dünya'daki yok oluşların yalnızca geçmişte kaldığı",
+        "İnsanın ekosistem dışında bağımsız bir varlık olduğu",
+        "Uzmanların yok oluş hızı konusunda görüş belirtmediği",
+      ],
+      inferenceWrong: [
+        "Ekolojik dengenin insan davranışlarından etkilenmediği",
+        "Doğal yaşamın korunması için hiçbir önlem gerekmediği",
+        "Tür kayıplarının insan etkinlikleriyle ilişkilendirilemeyeceği",
+      ],
+      topicWrong: [
+        "Doğal afetlerin oluşum nedenleri",
+        "Dünya'nın jeolojik katmanları",
+        "Canlı türlerinin fiziksel özellikleri",
+      ],
+      notSaidTruths: [
+        "Dünya büyük bir ekosistem olarak değerlendirilmiştir.",
+        "İnsan, ekosistemin etkin bir parçası olarak görülmüştür.",
+        "Altıncı yok oluşun başladığına ilişkin görüşlere yer verilmiştir.",
+      ],
+    };
+  }
+
+  if (topicText.includes("su") || topicText.includes("tasarruf")) {
+    return {
+      mainIdeaCorrect: "Su kaynaklarının korunması için bilinçli tüketimin gerekli olduğu",
+      directCorrect: "Küçük önlemlerin su tasarrufuna katkı sağlayabileceği",
+      inferenceCorrect: "Bireysel davranışların doğal kaynakların korunmasında etkili olabileceği",
+      notSaidCorrect: "Su kaynaklarının sınırsız olduğu için tasarrufa gerek bulunmadığı",
+      topicCorrect: "Su kaynaklarının bilinçli kullanılması",
+      mainIdeaWrong: [
+        "Suyun yalnızca sanayi alanında kullanılması gerektiği",
+        "Kuraklığın günlük yaşamla ilişkisinin bulunmadığı",
+        "Tasarrufun doğal kaynaklar üzerinde etkili olmadığı",
+      ],
+      directWrong: [
+        "Su tüketiminin azaltılmasının mümkün olmadığı",
+        "Kuraklığın yalnızca geçmiş dönemlerde görüldüğü",
+        "Bireylerin kaynak kullanımı konusunda sorumluluk taşımadığı",
+      ],
+      inferenceWrong: [
+        "Doğal kaynakların korunmasının yalnızca kurumlara bağlı olduğu",
+        "Günlük alışkanlıkların çevre üzerinde etkili olmadığı",
+        "Su sorununun gelecekle ilgili bir yönünün bulunmadığı",
+      ],
+      topicWrong: [
+        "Suyun sanayide kullanım alanları",
+        "Deniz canlılarının yaşam özellikleri",
+        "Yağış türlerinin oluşum biçimleri",
+      ],
+      notSaidTruths: [
+        "Su kaynaklarının korunması gerektiği vurgulanmıştır.",
+        "Bilinçli tüketimin gelecek açısından önemli olduğu belirtilmiştir.",
+        "Tasarrufun kuraklık riskine karşı etkili olabileceği anlatılmıştır.",
+      ],
+    };
+  }
+
+  if (topicText.includes("kitap") || topicText.includes("okuma")) {
+    return {
+      mainIdeaCorrect: "Kitap okumanın bireyin düşünce ve anlatım gücünü geliştirdiği",
+      directCorrect: "Okumanın kelime dağarcığını ve düşünce dünyasını zenginleştirdiği",
+      inferenceCorrect: "Düzenli okuyan kişilerin kendilerini daha etkili ifade edebileceği",
+      notSaidCorrect: "Kitap okumanın düşünme ve anlatma becerilerini olumsuz etkilediği",
+      topicCorrect: "Kitap okumanın bireye kazandırdıkları",
+      mainIdeaWrong: [
+        "Kitapların yalnızca eğlenme amacıyla okunması gerektiği",
+        "Okuma alışkanlığının hayal gücüyle ilgisinin bulunmadığı",
+        "Dilin gelişmesinde kitapların etkili olmadığı",
+      ],
+      directWrong: [
+        "Kitap okumanın yalnızca akademik başarıyla sınırlı olduğu",
+        "Roman ve öykülerin düşünce gelişimine katkı sağlamadığı",
+        "Okuma alışkanlığının kişisel gelişimle ilişkilendirilemeyeceği",
+      ],
+      inferenceWrong: [
+        "Kitap okuyan bireylerin farklı bakış açıları kazanamayacağı",
+        "Okuma eyleminin yalnızca boş zamanı değerlendirme amacı taşıdığı",
+        "Hayal gücünün kitaplardan bağımsız geliştiği",
+      ],
+      topicWrong: [
+        "Kitapların basım teknikleri",
+        "Kütüphanelerin mimari özellikleri",
+        "Yazarların yaşam öyküleri",
+      ],
+      notSaidTruths: [
+        "Okuma alışkanlığı dil gelişimini destekler.",
+        "Kitaplar farklı bakış açıları kazandırabilir.",
+        "Düşünme becerisi okuma yoluyla gelişebilir.",
+      ],
+    };
+  }
+
+  if (topicText.includes("teknoloji") || topicText.includes("bilgi")) {
+    return {
+      mainIdeaCorrect: "Teknolojinin bilgiye erişimi kolaylaştırırken seçici olmayı gerekli kıldığı",
+      directCorrect: "Teknoloji sayesinde bilgiye daha hızlı ulaşılabildiği",
+      inferenceCorrect: "Bilgi kaynaklarının çoğalmasının eleştirel düşünmeyi önemli hâle getirdiği",
+      notSaidCorrect: "İnternetteki bütün bilgilerin sorgulanmadan kullanılabileceği",
+      topicCorrect: "Teknolojinin bilgiye ulaşma sürecine etkisi",
+      mainIdeaWrong: [
+        "Dijital araçların öğrenme sürecini bütünüyle engellediği",
+        "Bilgi kaynaklarının artmasının seçiciliği gereksiz kıldığı",
+        "Teknolojinin yalnızca eğlence amacıyla kullanılması gerektiği",
+      ],
+      directWrong: [
+        "İnternetin bilgiye ulaşmayı zorlaştırdığı",
+        "Kaynak çeşitliliğinin doğru bilgiye ulaşmayı her zaman garanti ettiği",
+        "Eleştirel düşünmenin dijital çağda önemini yitirdiği",
+      ],
+      inferenceWrong: [
+        "Bilgiye hızlı ulaşmanın doğru bilgiye ulaşıldığı anlamına geldiği",
+        "Teknolojik gelişmelerin öğrenmeyle ilgisinin bulunmadığı",
+        "Kaynakların çoğalmasının değerlendirme yapmayı gerektirmediği",
+      ],
+      topicWrong: [
+        "Teknolojik araçların üretim maliyetleri",
+        "Bilgisayarların tarihsel gelişimi",
+        "Sosyal medyada geçirilen süreler",
+      ],
+      notSaidTruths: [
+        "Bilgiye ulaşmak eskiye göre kolaylaşmıştır.",
+        "Kaynak sayısının artması seçici olmayı gerektirir.",
+        "Eleştirel düşünme dijital çağda önem kazanmıştır.",
+      ],
+    };
+  }
+
+  if (topicText.includes("spor") || topicText.includes("sağlık")) {
+    return {
+      mainIdeaCorrect: "Düzenli sporun bedensel ve ruhsal sağlığı desteklediği",
+      directCorrect: "Spor yapmanın fiziksel ve ruhsal yönden yarar sağladığı",
+      inferenceCorrect: "Hareketli yaşamın kişinin kendini daha sağlıklı hissetmesine katkı sağlayabileceği",
+      notSaidCorrect: "Sporun insan sağlığı üzerinde olumlu bir etkisinin bulunmadığı",
+      topicCorrect: "Sporun insan sağlığına katkıları",
+      mainIdeaWrong: [
+        "Sporun yalnızca yarışma amacıyla yapılması gerektiği",
+        "Fiziksel hareketin ruhsal dengeyle ilişkisinin bulunmadığı",
+        "Sağlıklı yaşam için hareketten kaçınılması gerektiği",
+      ],
+      directWrong: [
+        "Düzenli hareketin bedensel sağlığı olumsuz etkilediği",
+        "Sporun yalnızca profesyoneller için gerekli olduğu",
+        "Egzersizin stresle baş etmede hiçbir işlev taşımadığı",
+      ],
+      inferenceWrong: [
+        "Spor yapmanın günlük yaşam kalitesiyle ilgisinin olmadığı",
+        "Sağlıklı kalmanın yalnızca beslenmeye bağlı olduğu",
+        "Hareketli yaşamın enerji düzeyini azaltacağı",
+      ],
+      topicWrong: [
+        "Spor karşılaşmalarının tarihsel sıralaması",
+        "Takım oyunlarının kuralları",
+        "Spor araçlarının üretim biçimleri",
+      ],
+      notSaidTruths: [
+        "Spor beden sağlığını destekler.",
+        "Düzenli hareket ruhsal dengeye katkı sağlar.",
+        "Fiziksel aktivite stresle baş etmede etkili olabilir.",
+      ],
+    };
+  }
+
+  const keywords = analysis.keywords?.slice(0, 3) || [];
+  const focus = keywords.length > 0 ? keywords.map(toTitleCase).join(", ") : "Metindeki düşünce";
+
+  return {
+    mainIdeaCorrect: analysis.mainIdea,
+    directCorrect: analysis.direct,
+    inferenceCorrect: analysis.inference,
+    notSaidCorrect: analysis.wrong,
+    topicCorrect: capitalizeFirst(analysis.topic),
+    mainIdeaWrong: [
+      "Konunun yalnızca kişisel izlenimlerle sınırlı tutulduğu",
+      `${focus} hakkında farklı görüşlerin karşılaştırıldığı`,
+      "Düşüncenin olay örgüsü içinde dolaylı olarak sezdirildiği",
+    ],
+    directWrong: [
+      `${focus} konusunda kesin bir sonuca ulaşılamadığı`,
+      "Anlatılanların yalnızca geçmişte yaşanmış bir olaya bağlandığı",
+      "Konunun nedenlerinden çok kişilerin özelliklerinin tanıtıldığı",
+    ],
+    inferenceWrong: [
+      "Anlatılanların metnin temel düşüncesiyle çeliştiği",
+      "Konunun yalnızca bireysel bir anı olarak ele alındığı",
+      "Metindeki bilgilerin genelleme yapmaya elverişli olmadığı",
+    ],
+    topicWrong: [
+      analysis.topicWrong,
+      "Kişilerin fiziksel özelliklerinin tanıtılması",
+      "Bir olayın oluş sırasına göre aktarılması",
+    ],
+    notSaidTruths: analysis.support,
+  };
+}
+
 function relatedDistractors(analysis) {
+  const examSet = getExamStyleChoices(analysis);
+  return {
+    mainIdea: examSet.mainIdeaWrong,
+    direct: examSet.directWrong,
+    inference: examSet.inferenceWrong,
+    topic: examSet.topicWrong,
+  };
   return {
     mainIdea: [
       analysis.wrong,
@@ -1105,6 +1359,7 @@ function relatedDistractors(analysis) {
 
 export function generateQuestions(paragraph) {
   const analysis = getAnalysis(paragraph);
+  const examSet = getExamStyleChoices(analysis);
   const distractors = relatedDistractors(analysis);
   const support = analysis.support.length > 0 ? analysis.support : [analysis.direct, analysis.mainIdea];
   const titleOptions = [analysis.title, ...analysis.titleOptions].slice(0, 4);
@@ -1115,7 +1370,7 @@ export function generateQuestions(paragraph) {
         id: "main-idea",
         type: "Ana düşünce",
         question: "Bu parçada asıl vurgulanmak istenen düşünce aşağıdakilerden hangisidir?",
-        options: [option(analysis.mainIdea, true), ...distractors.mainIdea.map((text) => option(text))],
+        options: [option(examSet.mainIdeaCorrect, true), ...distractors.mainIdea.map((text) => option(text))],
         explanation: "Doğru seçenek, parçadaki ayrıntıların bağlandığı temel düşünceyi verir.",
       },
       2,
@@ -1126,10 +1381,10 @@ export function generateQuestions(paragraph) {
         type: "Kesin yargı",
         question: "Bu parçadan aşağıdakilerden hangisine kesin olarak ulaşılabilir?",
         options: [
-          option(analysis.direct, true),
-          option(analysis.wrong),
+          option(examSet.directCorrect, true),
+          option(distractors.direct[0]),
           option(distractors.direct[1]),
-          option("Parçada verilen bilgiler, metindeki ana düşüncenin tersini kanıtlamaktadır."),
+          option(distractors.direct[2]),
         ],
         explanation: "Kesin yargı sorularında doğru seçenek, metinde açıkça desteklenen bilgidir.",
       },
@@ -1141,10 +1396,10 @@ export function generateQuestions(paragraph) {
         type: "Söylenemez",
         question: "Bu parçaya göre aşağıdakilerden hangisi söylenemez?",
         options: [
-          option(analysis.wrong, true),
-          option(analysis.direct),
-          option(support[0]),
-          option(support[1] || analysis.mainIdea),
+          option(examSet.notSaidCorrect, true),
+          option(examSet.notSaidTruths?.[0] || support[0]),
+          option(examSet.notSaidTruths?.[1] || support[1] || analysis.direct),
+          option(examSet.notSaidTruths?.[2] || support[2] || analysis.mainIdea),
         ],
         explanation: "Doğru seçenek, parçanın anlamıyla çelişen yargıdır.",
       },
@@ -1155,7 +1410,7 @@ export function generateQuestions(paragraph) {
         id: "inference",
         type: "Çıkarım",
         question: "Bu parçada anlatılanlardan hareketle aşağıdakilerden hangisi çıkarılabilir?",
-        options: [option(analysis.inference, true), ...distractors.inference.map((text) => option(text))],
+        options: [option(examSet.inferenceCorrect, true), ...distractors.inference.map((text) => option(text))],
         explanation: "Doğru seçenek, metindeki bilgilerden mantıklı biçimde ulaşılabilen sonuçtur.",
       },
       1,
@@ -1165,7 +1420,7 @@ export function generateQuestions(paragraph) {
         id: "topic",
         type: "Konu",
         question: "Bu parçada üzerinde durulan konu aşağıdakilerden hangisidir?",
-        options: [option(capitalizeFirst(analysis.topic), true), ...distractors.topic.map((text) => option(text))],
+        options: [option(examSet.topicCorrect, true), ...distractors.topic.map((text) => option(text))],
         explanation: "Konu, parçanın genelinde üzerinde durulan duygu, düşünce ya da durumdur.",
       },
       2,
