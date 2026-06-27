@@ -48,10 +48,14 @@ const exercises = [
   { id: "sekil", title: "Şekil Sayacı", skill: "ayrıntı takibi", icon: Shapes, tone: "violet" },
   { id: "yon", title: "Yön Takibi", skill: "dikkat sürdürme", icon: ArrowDownUp, tone: "sky" },
   { id: "fark", title: "Fark Bulucu", skill: "karşılaştırma", icon: Layers3, tone: "rose" },
-  { id: "toplam", title: "Toplam Çifti", skill: "zihinsel işlem", icon: Sigma, tone: "teal" },
+  { id: "toplam", title: "Matematik Yarışı", skill: "hızlı hesaplama", icon: Sigma, tone: "teal" },
   { id: "kelime", title: "Kelime Odağı", skill: "sınıflama", icon: CircleDot, tone: "lime" },
   { id: "kod", title: "Kod Hafızası", skill: "eşleme", icon: Grid3X3, tone: "indigo" },
-  { id: "desen", title: "Desen Tamamla", skill: "örüntü takibi", icon: Target, tone: "orange" },
+  { id: "desen", title: "Örüntü Bul", skill: "dizi örüntüsü", icon: Target, tone: "orange" },
+  { id: "anagram", title: "Anagram", skill: "harfleri sırala", icon: Grid3X3, tone: "sky" },
+  { id: "esanlam", title: "Eş Anlam", skill: "anlam eşleştirme", icon: BookOpenText, tone: "emerald" },
+  { id: "kelimetamamla", title: "Kelime Tamamla", skill: "eksik harf bulma", icon: Shapes, tone: "rose" },
+  { id: "zitanlam", title: "Zıt Anlam", skill: "karşıt anlam", icon: ArrowDownUp, tone: "violet" },
 ];
 
 const gameCategories = [
@@ -68,7 +72,7 @@ const gameCategories = [
     id: "hafiza",
     title: "Hafıza & Görsel",
     subtitle: "Gördüğünü aklında tut",
-    exerciseIds: ["dizi", "harf", "sekil", "fark", "kod", "desen"],
+    exerciseIds: ["dizi", "harf", "sekil", "fark", "kod"],
     icon: Brain,
     accent: "from-cyan-500 to-blue-500",
     chip: "bg-white/20 text-white",
@@ -77,7 +81,7 @@ const gameCategories = [
     id: "mantik",
     title: "Mantık & Matematik",
     subtitle: "Düşün, eşleştir, çöz",
-    exerciseIds: ["toplam"],
+    exerciseIds: ["toplam", "desen"],
     icon: Calculator,
     accent: "from-emerald-500 to-teal-500",
     chip: "bg-white/20 text-white",
@@ -86,7 +90,7 @@ const gameCategories = [
     id: "dil",
     title: "Kelime & Dil",
     subtitle: "Sözcük dikkatini geliştir",
-    exerciseIds: ["kelime"],
+    exerciseIds: ["kelime", "anagram", "esanlam", "kelimetamamla", "zitanlam"],
     icon: BookOpenText,
     accent: "from-amber-500 to-orange-500",
     chip: "bg-white/20 text-white",
@@ -111,6 +115,26 @@ const categorySets = [
   { name: "Meyve", words: ["elma", "armut", "muz", "kiraz", "üzüm", "şeftali"], distractors: ["kitap", "çanta", "bulut", "tahta"] },
   { name: "Renk", words: ["mavi", "yeşil", "sarı", "mor", "turuncu", "beyaz"], distractors: ["şehir", "yol", "ders", "oyun"] },
   { name: "Okul eşyası", words: ["kalem", "silgi", "defter", "cetvel", "kitap"], distractors: ["elma", "bulut", "kedi", "deniz"] },
+];
+
+const wordBank = ["kalem", "kitap", "okul", "defter", "başarı", "dikkat", "oyun", "bilgi", "çalışma", "zihin"];
+
+const synonymPairs = [
+  ["hızlı", "çabuk"],
+  ["mutlu", "sevinçli"],
+  ["akıllı", "zeki"],
+  ["öğrenci", "talebe"],
+  ["cevap", "yanıt"],
+  ["kolay", "basit"],
+];
+
+const antonymPairs = [
+  ["hızlı", "yavaş"],
+  ["kolay", "zor"],
+  ["uzun", "kısa"],
+  ["açık", "kapalı"],
+  ["az", "çok"],
+  ["geniş", "dar"],
 ];
 
 function clamp(value, min, max) {
@@ -174,6 +198,10 @@ function generateExercise(exerciseId, level) {
   if (exerciseId === "toplam") return generateSumTask(safeLevel);
   if (exerciseId === "kelime") return generateWordTask(safeLevel);
   if (exerciseId === "kod") return generateCodeTask(safeLevel);
+  if (exerciseId === "anagram") return generateAnagramTask(safeLevel);
+  if (exerciseId === "esanlam") return generateSynonymTask(safeLevel);
+  if (exerciseId === "kelimetamamla") return generateCompleteWordTask(safeLevel);
+  if (exerciseId === "zitanlam") return generateAntonymTask(safeLevel);
   return generatePatternTask(safeLevel);
 }
 
@@ -286,26 +314,18 @@ function generateDifferenceTask(level) {
 }
 
 function generateSumTask(level) {
-  const target = 8 + level * 2 + Math.floor(Math.random() * 6);
-  const first = Math.floor(target / 2) + Math.floor(Math.random() * 3) - 1;
-  const correctPair = [clamp(first, 1, target - 1), target - clamp(first, 1, target - 1)];
-  const wrongPairs = [];
-
-  while (wrongPairs.length < 3) {
-    const a = Math.floor(Math.random() * (target + 4)) + 1;
-    const b = Math.floor(Math.random() * (target + 4)) + 1;
-    const text = `${a} + ${b}`;
-
-    if (a + b !== target && !wrongPairs.some((pair) => `${pair[0]} + ${pair[1]}` === text)) {
-      wrongPairs.push([a, b]);
-    }
-  }
+  const operations = level < 3 ? ["+"] : level < 6 ? ["+", "-"] : ["+", "-", "×"];
+  const operation = randomItem(operations);
+  const first = Math.floor(Math.random() * (8 + level * 2)) + 2;
+  const second = Math.floor(Math.random() * (operation === "×" ? 8 : 8 + level)) + 2;
+  const expression = operation === "-" ? `${Math.max(first, second)} - ${Math.min(first, second)}` : `${first} ${operation} ${second}`;
+  const correct = operation === "+" ? first + second : operation === "-" ? Math.max(first, second) - Math.min(first, second) : first * second;
 
   return {
-    prompt: `Toplamı ${target} olan çifti seç.`,
-    display: { type: "targetNumber", value: target },
-    options: shuffle([correctPair, ...wrongPairs]).map((pair) => option(`${pair[0]} + ${pair[1]}`, pair[0] + pair[1] === target)),
-    answerText: `${correctPair[0]} + ${correctPair[1]}`,
+    prompt: "İşlemin sonucunu hızlıca seç.",
+    display: { type: "mathExpression", expression },
+    options: makeNumberOptions(correct, 0, Math.max(30, correct + 10)),
+    answerText: String(correct),
   };
 }
 
@@ -319,6 +339,67 @@ function generateWordTask(level) {
     display: { type: "wordFocus", label: category.name },
     options: shuffle(options).map((text) => option(text, text === correctWord)),
     answerText: correctWord,
+  };
+}
+
+function scrambleWord(word) {
+  const letters = word.split("");
+  let scrambled = shuffle(letters).join("");
+  if (scrambled === word && letters.length > 2) {
+    scrambled = [letters[1], letters[0], ...letters.slice(2)].join("");
+  }
+  return scrambled;
+}
+
+function generateAnagramTask() {
+  const correct = randomItem(wordBank.filter((word) => word.length >= 4));
+  const choices = unique([correct, ...shuffle(wordBank.filter((word) => word !== correct)).slice(0, 3)]).slice(0, 4);
+
+  return {
+    prompt: "Harfleri doğru sırala, kelimeyi oluştur.",
+    display: { type: "wordFocus", label: scrambleWord(correct).toLocaleUpperCase("tr-TR") },
+    options: shuffle(choices).map((text) => option(text, text === correct)),
+    answerText: correct,
+  };
+}
+
+function generateSynonymTask() {
+  const pair = randomItem(synonymPairs);
+  const wrong = shuffle(synonymPairs.flat().filter((word) => !pair.includes(word))).slice(0, 3);
+
+  return {
+    prompt: `"${pair[0]}" kelimesinin eş anlamlısını seç.`,
+    display: { type: "wordFocus", label: pair[0] },
+    options: shuffle([pair[1], ...wrong]).map((text) => option(text, text === pair[1])),
+    answerText: pair[1],
+  };
+}
+
+function generateAntonymTask() {
+  const pair = randomItem(antonymPairs);
+  const wrong = shuffle(antonymPairs.flat().filter((word) => !pair.includes(word))).slice(0, 3);
+
+  return {
+    prompt: `"${pair[0]}" kelimesinin zıt anlamlısını seç.`,
+    display: { type: "wordFocus", label: pair[0] },
+    options: shuffle([pair[1], ...wrong]).map((text) => option(text, text === pair[1])),
+    answerText: pair[1],
+  };
+}
+
+function generateCompleteWordTask() {
+  const correct = randomItem(wordBank.filter((word) => word.length >= 5));
+  const chars = correct.split("");
+  const hiddenIndex = Math.floor(chars.length / 2);
+  const missing = chars[hiddenIndex];
+  chars[hiddenIndex] = "_";
+  const wrongLetters = shuffle(letters.map((letter) => letter.toLocaleLowerCase("tr-TR")).filter((letter) => letter !== missing)).slice(0, 3);
+
+  return {
+    prompt: "Eksik harfi bulup kelimeyi tamamla.",
+    display: { type: "wordFocus", label: chars.join("") },
+    options: shuffle([missing, ...wrongLetters]).map((text) => option(text, text === missing)),
+    answerText: missing,
   };
 }
 
@@ -544,6 +625,17 @@ function ChallengeDisplay({ challenge, phase }) {
     );
   }
 
+  if (display.type === "mathExpression") {
+    return (
+      <div className="grid min-h-48 place-items-center rounded-lg border border-slate-200 bg-white shadow-inner">
+        <div className="text-center">
+          <span className="text-sm font-semibold text-slate-500">Hızlı hesapla</span>
+          <strong className="block text-6xl font-black text-slate-950">{display.expression}</strong>
+        </div>
+      </div>
+    );
+  }
+
   if (display.type === "wordFocus") {
     return (
       <div className="grid min-h-48 place-items-center rounded-lg border border-slate-200 bg-white shadow-inner">
@@ -678,7 +770,6 @@ function GamePanel({ challenge, exercise, onAnswer, phase, progress, result, sel
 }
 
 function App() {
-  const [grade, setGrade] = useState("5");
   const [activeId, setActiveId] = useState(null);
   const [activeCategoryId, setActiveCategoryId] = useState(null);
   const [screen, setScreen] = useState("home");
@@ -804,25 +895,11 @@ function App() {
               <Brain size={46} />
             </div>
             <h1 className="text-4xl font-black tracking-normal sm:text-5xl">Beyin Akademisi</h1>
-            <p className="mt-3 text-base font-bold text-white/55">10 oyun · 4 kategori · Odaklanmayı geliştir</p>
+            <p className="mt-3 text-base font-bold text-white/55">{exercises.length} oyun · 4 kategori · Odaklanmayı geliştir</p>
           </header>
 
-          <section className="mb-5 flex flex-wrap items-center justify-between gap-3">
+          <section className="mb-5">
             <p className="text-xs font-black uppercase tracking-[0.28em] text-white/40">Kategori seç</p>
-            <div className="flex flex-wrap gap-2">
-              {["4", "5", "6", "7", "8"].map((item) => (
-                <button
-                  className={`h-10 rounded-full px-5 text-sm font-black transition ${
-                    grade === item ? "bg-white text-[#100b2b]" : "bg-white/10 text-white/70 hover:bg-white/20"
-                  }`}
-                  key={item}
-                  onClick={() => setGrade(item)}
-                  type="button"
-                >
-                  {item}. sınıf
-                </button>
-              ))}
-            </div>
           </section>
 
           <section className="grid gap-4 md:grid-cols-2">
@@ -937,6 +1014,8 @@ function App() {
       </main>
     );
   }
+
+  return null;
 
   return (
     <main className="min-h-screen bg-slate-100 text-slate-900">
