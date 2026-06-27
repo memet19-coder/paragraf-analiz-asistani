@@ -166,15 +166,17 @@ function LanguagePanel({ analysis }) {
       <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
         <div className="border-b border-slate-200 bg-slate-50 px-5 py-4">
           <h3 className="text-base font-semibold text-slate-950">Cümle türleri</h3>
-          <p className="mt-1 text-sm text-slate-600">Her cümle yüklemin türüne ve yapısına göre yaklaşık olarak sınıflandırılmıştır.</p>
+          <p className="mt-1 text-sm text-slate-600">Her cümle yüklemine, anlamına ve yüklemin yerine göre sınıflandırılmıştır.</p>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[680px] border-collapse text-left text-sm">
+          <table className="w-full min-w-[860px] border-collapse text-left text-sm">
             <thead className="bg-white text-xs uppercase tracking-normal text-slate-500">
               <tr>
                 <th className="border-b border-slate-200 px-5 py-3 font-semibold">No</th>
                 <th className="border-b border-slate-200 px-5 py-3 font-semibold">Cümle</th>
-                <th className="border-b border-slate-200 px-5 py-3 font-semibold">Tür</th>
+                <th className="border-b border-slate-200 px-5 py-3 font-semibold">Yüklemine göre</th>
+                <th className="border-b border-slate-200 px-5 py-3 font-semibold">Anlamına göre</th>
+                <th className="border-b border-slate-200 px-5 py-3 font-semibold">Yüklemin yerine göre</th>
               </tr>
             </thead>
             <tbody>
@@ -182,7 +184,9 @@ function LanguagePanel({ analysis }) {
                 <tr className="align-top odd:bg-slate-50/60" key={`${row.order}-${row.sentence}`}>
                   <td className="w-16 border-b border-slate-100 px-5 py-4 font-semibold text-slate-900">{row.order}</td>
                   <td className="border-b border-slate-100 px-5 py-4 leading-6 text-slate-700">{row.sentence}</td>
-                  <td className="w-56 border-b border-slate-100 px-5 py-4 font-medium text-slate-900">{row.type}</td>
+                  <td className="w-40 border-b border-slate-100 px-5 py-4 font-medium text-slate-900">{row.predicateType}</td>
+                  <td className="w-40 border-b border-slate-100 px-5 py-4 font-medium text-slate-900">{row.meaningType}</td>
+                  <td className="w-44 border-b border-slate-100 px-5 py-4 font-medium text-slate-900">{row.orderType}</td>
                 </tr>
               ))}
             </tbody>

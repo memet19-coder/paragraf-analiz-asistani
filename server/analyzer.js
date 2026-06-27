@@ -425,13 +425,79 @@ function stripCaseSuffix(word) {
   return word.replace(/(da|de|dan|den|tan|ten|nın|nin|nun|nün|ın|in|un|ün|ı|i|u|ü|a|e)$/i, "");
 }
 
+function stripNominalSuffixes(word) {
+  const suffixes = [
+    "larından",
+    "lerinden",
+    "larının",
+    "lerinin",
+    "lardan",
+    "lerden",
+    "ların",
+    "lerin",
+    "sının",
+    "sinin",
+    "sunun",
+    "sünün",
+    "nın",
+    "nin",
+    "nun",
+    "nün",
+    "dan",
+    "den",
+    "tan",
+    "ten",
+    "dır",
+    "dir",
+    "dur",
+    "dür",
+    "tır",
+    "tir",
+    "tur",
+    "tür",
+    "sı",
+    "si",
+    "su",
+    "sü",
+    "ya",
+    "ye",
+    "yı",
+    "yi",
+    "yu",
+    "yü",
+    "da",
+    "de",
+    "ta",
+    "te",
+    "na",
+    "ne",
+  ];
+
+  let base = word;
+  let changed = true;
+
+  while (changed) {
+    changed = false;
+    for (const suffix of suffixes) {
+      if (base.endsWith(suffix) && base.length - suffix.length > 3) {
+        base = base.slice(0, -suffix.length);
+        changed = true;
+        break;
+      }
+    }
+  }
+
+  return base;
+}
+
 function originalMatches(paragraph, predicate) {
   return unique(tokenize(paragraph).filter((word) => predicate(cleanWord(word), word))).slice(0, 24);
 }
 
 function findVerbals(paragraph) {
   const words = tokenize(paragraph);
-  const falseVerbals = new Set(["bunlar", "şunlar", "onlar", "meydana", "kaynaklar", "varlıklar", "insanlar"]);
+  const falseVerbals = new Set(["bunlar", "şunlar", "onlar", "meydana", "kaynaklar", "varlıklar", "insanlar", "baştan"]);
+  const notVerbals = new Set(["gerçekmiş", "değilmiş", "varmış", "yokmuş"]);
   const groups = {
     isimFiiller: [],
     sifatFiiller: [],
@@ -440,22 +506,39 @@ function findVerbals(paragraph) {
 
   for (const original of words) {
     const word = cleanWord(original);
-    if (falseVerbals.has(word)) continue;
+    if (falseVerbals.has(word) || notVerbals.has(word)) continue;
+    if (/(mıştır|miştir|muştur|müştür|dı|di|du|dü|tı|ti|tu|tü|yor)$/.test(word)) continue;
 
     const base = stripCaseSuffix(word);
+    const nominalBase = stripNominalSuffixes(word);
 
-    if (/(ma|me|mak|mek|ış|iş|uş|üş)$/.test(base) && base.length > 4) {
+    if (/(ıp|ip|up|üp|arak|erek|ınca|ince|unca|ünce|ken|madan|meden|maksızın|meksizin)$/.test(base) && base.length > 5) {
+      groups.zarfFiiller.push(original);
+      continue;
+    }
+
+    if (
+      !/(mış|miş|muş|müş)$/.test(nominalBase) &&
+      (
+        /(mak|mek)$/.test(nominalBase) ||
+        /(ma|me)$/.test(nominalBase) ||
+        /(?<!m)(ış|iş|uş|üş)$/.test(nominalBase)
+      ) &&
+      nominalBase.length > 4
+    ) {
       groups.isimFiiller.push(original);
       continue;
     }
 
-    if (/(an|en|ası|esi|maz|mez|dık|dik|duk|dük|tık|tik|tuk|tük|acak|ecek|mış|miş|muş|müş)$/.test(base) && base.length > 5) {
+    if (
+      (
+        /(an|en|ası|esi|maz|mez|dık|dik|duk|dük|tık|tik|tuk|tük|acak|ecek|mış|miş|muş|müş)$/.test(nominalBase) ||
+        /(dığı|diği|duğu|düğü|tığı|tiği|tuğu|tüğü)$/.test(word)
+      ) &&
+      nominalBase.length > 5
+    ) {
       groups.sifatFiiller.push(original);
       continue;
-    }
-
-    if (/(ıp|ip|up|üp|arak|erek|ınca|ince|unca|ünce|ken|madan|meden|maksızın|meksizin)$/.test(base) && base.length > 5) {
-      groups.zarfFiiller.push(original);
     }
   }
 
@@ -466,23 +549,44 @@ function findVerbals(paragraph) {
   };
 }
 
+function isLikelyVerbPredicate(word) {
+  if (!word) return false;
+  if (
+    /(dır|dir|dur|dür|tır|tir|tur|tür)$/.test(word) &&
+    !/(maktadır|mektedir|mıştır|miştir|muştur|müştür)$/.test(word)
+  ) {
+    return false;
+  }
+
+  return (
+    /(maktadır|mektedir)$/.test(word) ||
+    /(yor|dı|di|du|dü|tı|ti|tu|tü|mış|miş|muş|müş|mıştır|miştir|muştur|müştür|acak|ecek|malı|meli|maz|mez)$/.test(word) ||
+    /(ar|er|ır|ir|ur|ür)$/.test(word)
+  );
+}
+
+function hasCopulaSuffix(word) {
+  return !!word && /(dır|dir|dur|dür|tır|tir|tur|tür)$/.test(word) && !/(mıştır|miştir|muştur|müştür)$/.test(word);
+}
+
 function inferSentenceKind(sentence) {
   const clean = cleanSentence(sentence);
   const words = tokenize(clean).map(cleanWord);
   const last = words.at(-1) || "";
-  const hasFiniteVerb = /(yor|dı|di|du|dü|tı|ti|tu|tü|mış|miş|muş|müş|acak|ecek|malı|meli|r)$/.test(last);
-  const hasConjunction = /\b(ve|ama|fakat|ancak|çünkü|oysa|halbuki)\b/i.test(clean);
-  const hasCommaSeries = clean.includes(",") || clean.includes(";");
-  const hasSubClause = /\bki\b/i.test(clean) || findVerbals(clean).isimFiiller.length + findVerbals(clean).sifatFiiller.length + findVerbals(clean).zarfFiiller.length > 0;
+  const predicateIndex = words.findLastIndex(isLikelyVerbPredicate);
+  const isVerbSentence = !hasCopulaSuffix(last) && predicateIndex >= 0;
+  const hasNegativeMarker =
+    /\bdeğil/i.test(clean) ||
+    words.some((word) => /(madı|medi|maz|mez|mıyor|miyor|muyor|müyor|mayacak|meyecek|mamış|memiş)$/.test(word));
 
-  let predicateType = hasFiniteVerb ? "Fiil cümlesi" : "İsim cümlesi";
-  let structure = "Basit cümle";
-
-  if (hasConjunction) structure = "Bağlı cümle";
-  else if (hasCommaSeries) structure = "Sıralı cümle";
-  else if (hasSubClause) structure = "Birleşik cümle";
-
-  return `${predicateType} / ${structure}`;
+  return {
+    predicateType: isVerbSentence ? "Fiil cümlesi" : "İsim cümlesi",
+    meaningType: hasNegativeMarker ? "Olumsuz cümle" : "Olumlu cümle",
+    orderType:
+      predicateIndex >= 0 && predicateIndex !== words.length - 1 && !hasCopulaSuffix(last)
+        ? "Devrik cümle"
+        : "Kurallı cümle",
+  };
 }
 
 function findAdjectives(paragraph) {
@@ -555,7 +659,7 @@ export function analyzeLanguage(paragraph) {
     sentenceTypes: sentences.map((sentence, index) => ({
       order: index + 1,
       sentence: cleanSentence(sentence),
-      type: inferSentenceKind(sentence),
+      ...inferSentenceKind(sentence),
     })),
     adjectives: {
       label: "Sıfatlar",
