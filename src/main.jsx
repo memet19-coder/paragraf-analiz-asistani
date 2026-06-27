@@ -2,20 +2,33 @@ import React, { useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import {
   BookOpenText,
+  BookmarkCheck,
   Brain,
   CheckCircle2,
   ClipboardList,
   Eye,
   EyeOff,
   Hash,
+  Languages,
+  ListChecks,
   Loader2,
+  Save,
   Sparkles,
+  Trash2,
   Wand2,
 } from "lucide-react";
 import "./styles.css";
 
 const sampleParagraph =
   "Dünya, üzerinde bulunan canlı ve cansız varlıklar ile bunların ilişkilerinden meydana gelen büyük bir ekosistemden oluşur. İnsanoğlu bu ekosistemin etkin bir parçasıdır. Ancak aynı zamanda ekosistemin en önemli tehdit kaynaklarından biri de insandır. Çeşitli görüşlere göre 4,5 milyar yaşında olan Dünya'mızda bugüne kadar yaşanan doğal afetler neticesinde yaşamsal varlıkların 5 kez yok olduğu, günümüzde ise 6. yok oluşun başladığı ileri sürülmektedir. Türlerin yok oluş hızını değerlendiren uzmanlara göre insanoğlu bu yok oluşun temel sebebidir.";
+
+function readSavedQuestions() {
+  try {
+    return JSON.parse(localStorage.getItem("savedQuestions") || "[]");
+  } catch {
+    return [];
+  }
+}
 
 function StatCard({ label, value, icon: Icon }) {
   return (
@@ -29,7 +42,22 @@ function StatCard({ label, value, icon: Icon }) {
   );
 }
 
-function QuestionCard({ question, revealAll }) {
+function SegmentButton({ active, children, icon: Icon, onClick }) {
+  return (
+    <button
+      className={`inline-flex h-10 items-center justify-center gap-2 rounded-md px-3 text-sm font-semibold transition ${
+        active ? "bg-slate-950 text-white" : "text-slate-600 hover:bg-slate-50"
+      }`}
+      onClick={onClick}
+      type="button"
+    >
+      <Icon size={16} />
+      {children}
+    </button>
+  );
+}
+
+function QuestionCard({ isSaved, onSave, question, revealAll }) {
   const [isVisible, setIsVisible] = useState(false);
   const showAnswer = revealAll || isVisible;
 
@@ -42,14 +70,29 @@ function QuestionCard({ question, revealAll }) {
           </span>
           <h3 className="mt-3 text-base font-semibold leading-7 text-slate-950">{question.question}</h3>
         </div>
-        <button
-          className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-lg border border-slate-200 px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-          onClick={() => setIsVisible((current) => !current)}
-          type="button"
-        >
-          {showAnswer ? <EyeOff size={16} /> : <Eye size={16} />}
-          {showAnswer ? "Gizle" : "Cevabı göster"}
-        </button>
+        <div className="flex shrink-0 flex-wrap gap-2">
+          <button
+            className={`inline-flex h-10 items-center justify-center gap-2 rounded-lg border px-3 text-sm font-semibold transition ${
+              isSaved
+                ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                : "border-slate-200 text-slate-700 hover:bg-slate-50"
+            }`}
+            disabled={isSaved}
+            onClick={onSave}
+            type="button"
+          >
+            {isSaved ? <BookmarkCheck size={16} /> : <Save size={16} />}
+            {isSaved ? "Kaydedildi" : "Kaydet"}
+          </button>
+          <button
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-200 px-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+            onClick={() => setIsVisible((current) => !current)}
+            type="button"
+          >
+            {showAnswer ? <EyeOff size={16} /> : <Eye size={16} />}
+            {showAnswer ? "Gizle" : "Cevabı göster"}
+          </button>
+        </div>
       </div>
 
       <div className="grid gap-2">
@@ -89,6 +132,109 @@ function QuestionCard({ question, revealAll }) {
   );
 }
 
+function ItemListCard({ description, items, title }) {
+  return (
+    <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+      <h3 className="text-base font-semibold text-slate-950">{title}</h3>
+      <p className="mt-1 text-sm leading-6 text-slate-600">{description}</p>
+      {items.length > 0 ? (
+        <div className="mt-4 flex flex-wrap gap-2">
+          {items.map((item) => (
+            <span className="rounded-md bg-slate-100 px-2.5 py-1 text-sm font-medium text-slate-700" key={item}>
+              {item}
+            </span>
+          ))}
+        </div>
+      ) : (
+        <p className="mt-4 rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-500">Bu bölüm için belirgin örnek bulunamadı.</p>
+      )}
+    </section>
+  );
+}
+
+function LanguagePanel({ analysis }) {
+  if (!analysis) return null;
+
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-4 sm:grid-cols-3">
+        {analysis.verbals.map((group) => (
+          <ItemListCard description={group.explanation} items={group.items} key={group.label} title={group.label} />
+        ))}
+      </div>
+
+      <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+        <div className="border-b border-slate-200 bg-slate-50 px-5 py-4">
+          <h3 className="text-base font-semibold text-slate-950">Cümle türleri</h3>
+          <p className="mt-1 text-sm text-slate-600">Her cümle yüklemin türüne ve yapısına göre yaklaşık olarak sınıflandırılmıştır.</p>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[680px] border-collapse text-left text-sm">
+            <thead className="bg-white text-xs uppercase tracking-normal text-slate-500">
+              <tr>
+                <th className="border-b border-slate-200 px-5 py-3 font-semibold">No</th>
+                <th className="border-b border-slate-200 px-5 py-3 font-semibold">Cümle</th>
+                <th className="border-b border-slate-200 px-5 py-3 font-semibold">Tür</th>
+              </tr>
+            </thead>
+            <tbody>
+              {analysis.sentenceTypes.map((row) => (
+                <tr className="align-top odd:bg-slate-50/60" key={`${row.order}-${row.sentence}`}>
+                  <td className="w-16 border-b border-slate-100 px-5 py-4 font-semibold text-slate-900">{row.order}</td>
+                  <td className="border-b border-slate-100 px-5 py-4 leading-6 text-slate-700">{row.sentence}</td>
+                  <td className="w-56 border-b border-slate-100 px-5 py-4 font-medium text-slate-900">{row.type}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <div className="grid gap-4 sm:grid-cols-3">
+        <ItemListCard description={analysis.adjectives.explanation} items={analysis.adjectives.items} title="Sıfatlar" />
+        <ItemListCard description={analysis.nounPhrases.explanation} items={analysis.nounPhrases.items} title="İsim tamlamaları" />
+        <ItemListCard description={analysis.adjectivePhrases.explanation} items={analysis.adjectivePhrases.items} title="Sıfat tamlamaları" />
+      </div>
+    </div>
+  );
+}
+
+function SavedQuestions({ onRemove, questions }) {
+  if (questions.length === 0) {
+    return (
+      <section className="rounded-lg border border-dashed border-slate-300 bg-white p-8 text-center">
+        <BookmarkCheck className="mx-auto mb-3 h-8 w-8 text-slate-400" />
+        <h3 className="text-base font-semibold text-slate-950">Henüz kaydedilmiş soru yok</h3>
+        <p className="mt-2 text-sm text-slate-600">Beğendiğin sorulardaki Kaydet düğmesine basınca burada görünecek.</p>
+      </section>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      {questions.map((question) => (
+        <article className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm" key={question.savedId}>
+          <div className="mb-3 flex items-start justify-between gap-3">
+            <span className="rounded-md bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-800">{question.type}</span>
+            <button
+              className="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-slate-200 px-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
+              onClick={() => onRemove(question.savedId)}
+              type="button"
+            >
+              <Trash2 size={15} />
+              Sil
+            </button>
+          </div>
+          <h3 className="text-base font-semibold leading-7 text-slate-950">{question.question}</h3>
+          <p className="mt-3 text-sm leading-6 text-slate-700">
+            <strong>Doğru cevap:</strong> {question.correctKey}) {question.answer}
+          </p>
+        </article>
+      ))}
+    </div>
+  );
+}
+
 function EmptyState() {
   return (
     <section className="flex min-h-[420px] flex-col items-center justify-center rounded-lg border border-dashed border-slate-300 bg-white p-8 text-center">
@@ -97,7 +243,7 @@ function EmptyState() {
       </span>
       <h2 className="text-lg font-semibold text-slate-950">Sorular burada hazırlanacak</h2>
       <p className="mt-2 max-w-md text-sm leading-6 text-slate-600">
-        Paragrafı ekleyip soruları hazırladığında soru bankası diline yakın, seçenekli ve açıklamalı bir çalışma seti oluşur.
+        Paragrafı ekleyip soruları hazırladığında soru seti ve dil bilgisi incelemesi sekmeler hâlinde açılır.
       </p>
     </section>
   );
@@ -106,15 +252,45 @@ function EmptyState() {
 function App() {
   const [paragraph, setParagraph] = useState("");
   const [result, setResult] = useState(null);
+  const [activeTab, setActiveTab] = useState("questions");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [revealAll, setRevealAll] = useState(false);
+  const [savedQuestions, setSavedQuestions] = useState(readSavedQuestions);
 
   const stats = useMemo(() => {
     const words = paragraph.trim().split(/\s+/).filter(Boolean);
     const sentences = paragraph.split(/[.!?]+/).map((item) => item.trim()).filter(Boolean);
     return { words: words.length, sentences: sentences.length, chars: paragraph.trim().length };
   }, [paragraph]);
+
+  function persistSaved(nextQuestions) {
+    setSavedQuestions(nextQuestions);
+    localStorage.setItem("savedQuestions", JSON.stringify(nextQuestions));
+  }
+
+  function questionSignature(question) {
+    return `${question.type}-${question.question}-${question.answer}`;
+  }
+
+  function saveQuestion(question) {
+    const signature = questionSignature(question);
+    if (savedQuestions.some((item) => item.signature === signature)) return;
+
+    persistSaved([
+      {
+        ...question,
+        signature,
+        savedId: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+        paragraphPreview: paragraph.slice(0, 160),
+      },
+      ...savedQuestions,
+    ]);
+  }
+
+  function removeSavedQuestion(savedId) {
+    persistSaved(savedQuestions.filter((question) => question.savedId !== savedId));
+  }
 
   async function generateQuestionSet() {
     setError("");
@@ -134,6 +310,7 @@ function App() {
       }
 
       setResult(data);
+      setActiveTab("questions");
     } catch (currentError) {
       setError(currentError.message);
     } finally {
@@ -195,7 +372,7 @@ function App() {
               <div className="space-y-4">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <h2 className="text-lg font-semibold text-slate-950">Hazırlanan soru seti</h2>
+                    <h2 className="text-lg font-semibold text-slate-950">Hazırlanan çalışma seti</h2>
                     <p className="mt-1 text-sm text-slate-600">{result.questions.length} soru oluşturuldu.</p>
                   </div>
                   <button
@@ -208,11 +385,40 @@ function App() {
                   </button>
                 </div>
 
-                <div className="space-y-4">
-                  {result.questions.map((question) => (
-                    <QuestionCard key={question.id} question={question} revealAll={revealAll} />
-                  ))}
+                <div className="inline-flex flex-wrap rounded-lg border border-slate-200 bg-white p-1 shadow-sm">
+                  <SegmentButton active={activeTab === "questions"} icon={ListChecks} onClick={() => setActiveTab("questions")}>
+                    Sorular
+                  </SegmentButton>
+                  <SegmentButton active={activeTab === "language"} icon={Languages} onClick={() => setActiveTab("language")}>
+                    Dil bilgisi
+                  </SegmentButton>
+                  <SegmentButton active={activeTab === "saved"} icon={BookmarkCheck} onClick={() => setActiveTab("saved")}>
+                    Kaydedilenler ({savedQuestions.length})
+                  </SegmentButton>
                 </div>
+
+                {activeTab === "questions" ? (
+                  <div className="space-y-4">
+                    {result.questions.map((question) => {
+                      const signature = questionSignature(question);
+                      const isSaved = savedQuestions.some((saved) => saved.signature === signature);
+
+                      return (
+                        <QuestionCard
+                          isSaved={isSaved}
+                          key={question.id}
+                          onSave={() => saveQuestion(question)}
+                          question={question}
+                          revealAll={revealAll}
+                        />
+                      );
+                    })}
+                  </div>
+                ) : null}
+
+                {activeTab === "language" ? <LanguagePanel analysis={result.languageAnalysis} /> : null}
+
+                {activeTab === "saved" ? <SavedQuestions onRemove={removeSavedQuestion} questions={savedQuestions} /> : null}
               </div>
             ) : (
               <EmptyState />

@@ -38,6 +38,55 @@ const TEXT_TYPES = [
   "Betimleyici anlatım",
 ];
 
+const COMMON_ADJECTIVES = new Set([
+  "büyük",
+  "küçük",
+  "eski",
+  "yeni",
+  "önemli",
+  "farklı",
+  "etkin",
+  "doğal",
+  "yaşamsal",
+  "bilinçli",
+  "tasarruflu",
+  "düzenli",
+  "fiziksel",
+  "ruhsal",
+  "eleştirel",
+  "gerçek",
+  "kurmaca",
+  "belirleyici",
+  "olumlu",
+  "olumsuz",
+  "geniş",
+  "dar",
+  "uzun",
+  "kısa",
+  "güçlü",
+  "zayıf",
+]);
+
+const COMMON_NOUNS = new Set([
+  "dünya",
+  "ekosistem",
+  "insan",
+  "varlık",
+  "kaynak",
+  "tehdit",
+  "tür",
+  "yazar",
+  "öykü",
+  "okur",
+  "metin",
+  "bilgi",
+  "kitap",
+  "su",
+  "spor",
+  "sağlık",
+  "düşünce",
+]);
+
 const TOPIC_PROFILES = [
   {
     terms: ["belgelerim", "yazar", "öykü", "öyküler", "gerçek", "kurmaca", "tasarlamış", "anlatılanların"],
@@ -372,6 +421,160 @@ function getTextTypeExplanation(textType) {
   return "Parçada bilgi verme ve bir düşünceyi açıklama amacı ağır bastığı için bu seçenek doğrudur.";
 }
 
+function stripCaseSuffix(word) {
+  return word.replace(/(da|de|dan|den|tan|ten|nın|nin|nun|nün|ın|in|un|ün|ı|i|u|ü|a|e)$/i, "");
+}
+
+function originalMatches(paragraph, predicate) {
+  return unique(tokenize(paragraph).filter((word) => predicate(cleanWord(word), word))).slice(0, 24);
+}
+
+function findVerbals(paragraph) {
+  const words = tokenize(paragraph);
+  const falseVerbals = new Set(["bunlar", "şunlar", "onlar", "meydana", "kaynaklar", "varlıklar", "insanlar"]);
+  const groups = {
+    isimFiiller: [],
+    sifatFiiller: [],
+    zarfFiiller: [],
+  };
+
+  for (const original of words) {
+    const word = cleanWord(original);
+    if (falseVerbals.has(word)) continue;
+
+    const base = stripCaseSuffix(word);
+
+    if (/(ma|me|mak|mek|ış|iş|uş|üş)$/.test(base) && base.length > 4) {
+      groups.isimFiiller.push(original);
+      continue;
+    }
+
+    if (/(an|en|ası|esi|maz|mez|dık|dik|duk|dük|tık|tik|tuk|tük|acak|ecek|mış|miş|muş|müş)$/.test(base) && base.length > 5) {
+      groups.sifatFiiller.push(original);
+      continue;
+    }
+
+    if (/(ıp|ip|up|üp|arak|erek|ınca|ince|unca|ünce|ken|madan|meden|maksızın|meksizin)$/.test(base) && base.length > 5) {
+      groups.zarfFiiller.push(original);
+    }
+  }
+
+  return {
+    isimFiiller: unique(groups.isimFiiller),
+    sifatFiiller: unique(groups.sifatFiiller),
+    zarfFiiller: unique(groups.zarfFiiller),
+  };
+}
+
+function inferSentenceKind(sentence) {
+  const clean = cleanSentence(sentence);
+  const words = tokenize(clean).map(cleanWord);
+  const last = words.at(-1) || "";
+  const hasFiniteVerb = /(yor|dı|di|du|dü|tı|ti|tu|tü|mış|miş|muş|müş|acak|ecek|malı|meli|r)$/.test(last);
+  const hasConjunction = /\b(ve|ama|fakat|ancak|çünkü|oysa|halbuki)\b/i.test(clean);
+  const hasCommaSeries = clean.includes(",") || clean.includes(";");
+  const hasSubClause = /\bki\b/i.test(clean) || findVerbals(clean).isimFiiller.length + findVerbals(clean).sifatFiiller.length + findVerbals(clean).zarfFiiller.length > 0;
+
+  let predicateType = hasFiniteVerb ? "Fiil cümlesi" : "İsim cümlesi";
+  let structure = "Basit cümle";
+
+  if (hasConjunction) structure = "Bağlı cümle";
+  else if (hasCommaSeries) structure = "Sıralı cümle";
+  else if (hasSubClause) structure = "Birleşik cümle";
+
+  return `${predicateType} / ${structure}`;
+}
+
+function findAdjectives(paragraph) {
+  return originalMatches(paragraph, (word) => {
+    const base = stripCaseSuffix(word);
+    return COMMON_ADJECTIVES.has(base) || /(sal|sel|ki)$/.test(base) || /^\d+$/.test(base);
+  });
+}
+
+function isLikelyNoun(word) {
+  const base = stripCaseSuffix(word);
+  return COMMON_NOUNS.has(base) || (base.length > 3 && !STOP_WORDS.has(base) && !COMMON_ADJECTIVES.has(base));
+}
+
+function findPhrases(paragraph) {
+  const words = tokenize(paragraph);
+  const normalized = words.map(cleanWord);
+  const nounPhrases = [];
+  const adjectivePhrases = [];
+
+  for (let index = 0; index < words.length - 1; index += 1) {
+    const first = normalized[index];
+    const second = normalized[index + 1];
+    const firstBase = stripCaseSuffix(first);
+    const secondBase = stripCaseSuffix(second);
+    const pair = `${words[index]} ${words[index + 1]}`;
+
+    const hasGenitive = /(ın|in|un|ün|nın|nin|nun|nün)$/.test(first);
+    const hasPossessive = /(ı|i|u|ü|sı|si|su|sü|ları|leri)$/.test(second);
+
+    if ((hasGenitive || hasPossessive) && isLikelyNoun(first) && isLikelyNoun(second)) {
+      nounPhrases.push(pair);
+      continue;
+    }
+
+    if ((COMMON_ADJECTIVES.has(firstBase) || /(sal|sel|ki)$/.test(firstBase) || /^\d+$/.test(firstBase)) && isLikelyNoun(secondBase)) {
+      adjectivePhrases.push(pair);
+    }
+  }
+
+  return {
+    nounPhrases: unique(nounPhrases).slice(0, 18),
+    adjectivePhrases: unique(adjectivePhrases).slice(0, 18),
+  };
+}
+
+export function analyzeLanguage(paragraph) {
+  const sentences = splitSentences(paragraph);
+  const verbals = findVerbals(paragraph);
+  const phrases = findPhrases(paragraph);
+
+  return {
+    verbals: [
+      {
+        label: "İsim-fiiller",
+        items: verbals.isimFiiller,
+        explanation: "-ma, -me, -mak, -mek, -ış, -iş, -uş, -üş ekleriyle adlaşan fiilimsi örnekleri.",
+      },
+      {
+        label: "Sıfat-fiiller",
+        items: verbals.sifatFiiller,
+        explanation: "-an, -en, -dık, -ecek, -miş gibi eklerle isimleri niteleyen fiilimsi örnekleri.",
+      },
+      {
+        label: "Zarf-fiiller",
+        items: verbals.zarfFiiller,
+        explanation: "-ıp, -arak, -ince, -ken, -meden gibi eklerle eylemin durumunu veya zamanını belirten fiilimsi örnekleri.",
+      },
+    ],
+    sentenceTypes: sentences.map((sentence, index) => ({
+      order: index + 1,
+      sentence: cleanSentence(sentence),
+      type: inferSentenceKind(sentence),
+    })),
+    adjectives: {
+      label: "Sıfatlar",
+      items: findAdjectives(paragraph),
+      explanation: "İsimleri niteleyen ya da belirten sözcükler listelenmiştir.",
+    },
+    nounPhrases: {
+      label: "İsim tamlamaları",
+      items: phrases.nounPhrases,
+      explanation: "Bir ismin başka bir isimle anlamca tamamlandığı söz öbekleri.",
+    },
+    adjectivePhrases: {
+      label: "Sıfat tamlamaları",
+      items: phrases.adjectivePhrases,
+      explanation: "Bir sıfatın bir ismi nitelediği ya da belirttiği söz öbekleri.",
+    },
+  };
+}
+
 function relatedDistractors(analysis) {
   return {
     mainIdea: [
@@ -508,6 +711,7 @@ export function generateQuestions(paragraph) {
 
   return {
     questions,
+    languageAnalysis: analyzeLanguage(paragraph),
   };
 }
 
@@ -540,5 +744,6 @@ export function analyzeText(paragraph) {
   return {
     ...analyzeParagraph(paragraph),
     questionSet: generateQuestions(paragraph),
+    languageAnalysis: analyzeLanguage(paragraph),
   };
 }
