@@ -521,9 +521,9 @@ function capitalizeFirst(text) {
   return `${text.charAt(0).toLocaleUpperCase("tr-TR")}${text.slice(1)}`;
 }
 
-function option(text, isCorrect = false) {
+function option(text, isCorrect = false, reason = "") {
   const cleanText = typeof text === "string" ? text.replace(/[.!?]\s*$/u, "") : text;
-  return { text: cleanText, isCorrect };
+  return { text: cleanText, isCorrect, reason };
 }
 
 function compactOptions(options) {
@@ -556,6 +556,7 @@ function makeQuestion({ id, type, question, options, explanation }, offset = 0) 
     options: finalOptions.map((item, index) => ({
       key: String.fromCharCode(65 + index),
       text: item.text,
+      reason: item.reason,
     })),
     correctKey: String.fromCharCode(65 + correctIndex),
     answer: finalOptions[correctIndex]?.text || "",
@@ -1411,8 +1412,63 @@ function relatedDistractors(analysis) {
   };
 }
 
+function makeEvidenceReason(analysis, message = "Bu seçeneği parçada verilen bilgiler destekler.") {
+  const evidence = analysis.support?.[0] || analysis.direct || analysis.mainIdea;
+  return evidence ? `${message} Parçada "${cleanSentence(evidence)}" ifadesi bu yargıya dayanak olur.` : message;
+}
+
+function makeWrongReason(analysis) {
+  const evidence = analysis.support?.[0] || analysis.direct || analysis.mainIdea;
+  const secondEvidence = analysis.support?.[2] || analysis.mainIdea;
+
+  if (!evidence) {
+    return "Bu seçenek parçadaki bilgilerle desteklenmez.";
+  }
+
+  if (secondEvidence && secondEvidence !== evidence) {
+    return `Bu seçenek parçadaki düşünceyle uyuşmaz. Parçada "${cleanSentence(evidence)}" ve "${cleanSentence(secondEvidence)}" denerek farklı bir yargı ortaya konur.`;
+  }
+
+  return `Bu seçenek parçadaki düşünceyle uyuşmaz. Parçada "${cleanSentence(evidence)}" denerek farklı bir yargı ortaya konur.`;
+}
+
+function optionsWithReasons(texts, analysis, correctText = "") {
+  return texts.map((text) => option(text, text === correctText, text === correctText ? makeEvidenceReason(analysis) : makeWrongReason(analysis)));
+}
+
+function getPassageSupport(paragraph, analysis) {
+  const sentences = splitSentences(paragraph).map(cleanSentence).filter(Boolean);
+  const lowerTopic = normalize(`${analysis.topic} ${analysis.title}`);
+
+  if (lowerTopic.includes("yazar aday") || lowerTopic.includes("etkilenmekten")) {
+    return unique([
+      sentences.find((sentence) => /olumsuz|etkilenmek/i.test(sentence)),
+      sentences.find((sentence) => /ilham/i.test(sentence)),
+      sentences.find((sentence) => /yazma alışkanlığı|kendi tarz/i.test(sentence)),
+    ]).filter(Boolean);
+  }
+
+  if (lowerTopic.includes("ekosistem") || lowerTopic.includes("yok oluş")) {
+    return unique([
+      sentences.find((sentence) => /tehdit|ekosistem/i.test(sentence)),
+      sentences.find((sentence) => /yok oluş/i.test(sentence)),
+      sentences.find((sentence) => /temel sebeb/i.test(sentence)),
+    ]).filter(Boolean);
+  }
+
+  if (lowerTopic.includes("su") || lowerTopic.includes("tasarruf")) {
+    return unique([
+      sentences.find((sentence) => /su|tasarruf|kaynak/i.test(sentence)),
+      sentences.find((sentence) => /kurak|gelecek|bilinç/i.test(sentence)),
+    ]).filter(Boolean);
+  }
+
+  return unique([...sentences.slice(0, 2), ...(analysis.support || [])]).filter(Boolean).slice(0, 3);
+}
+
 export function generateQuestions(paragraph) {
   const analysis = getAnalysis(paragraph);
+  const explanationAnalysis = { ...analysis, support: getPassageSupport(paragraph, analysis) };
   const examSet = getExamStyleChoices(analysis);
   const distractors = relatedDistractors(analysis);
   const support = analysis.support.length > 0 ? analysis.support : [analysis.direct, analysis.mainIdea];
@@ -1424,8 +1480,8 @@ export function generateQuestions(paragraph) {
         id: "main-idea",
         type: "Ana düşünce",
         question: "Bu parçada asıl vurgulanmak istenen düşünce aşağıdakilerden hangisidir?",
-        options: [option(examSet.mainIdeaCorrect, true), ...distractors.mainIdea.map((text) => option(text))],
-        explanation: "Doğru seçenek, parçadaki ayrıntıların bağlandığı temel düşünceyi verir.",
+        options: optionsWithReasons([examSet.mainIdeaCorrect, ...distractors.mainIdea], explanationAnalysis, examSet.mainIdeaCorrect),
+        explanation: makeEvidenceReason(explanationAnalysis, "Doğru seçenek, parçanın ana düşüncesini karşılar."),
       },
       2,
     ),
@@ -1434,13 +1490,8 @@ export function generateQuestions(paragraph) {
         id: "certain",
         type: "Kesin yargı",
         question: "Bu parçadan aşağıdakilerden hangisine kesin olarak ulaşılabilir?",
-        options: [
-          option(examSet.directCorrect, true),
-          option(distractors.direct[0]),
-          option(distractors.direct[1]),
-          option(distractors.direct[2]),
-        ],
-        explanation: "Kesin yargı sorularında doğru seçenek, metinde açıkça desteklenen bilgidir.",
+        options: optionsWithReasons([examSet.directCorrect, ...distractors.direct], explanationAnalysis, examSet.directCorrect),
+        explanation: makeEvidenceReason(explanationAnalysis, "Doğru seçenek metinde açıkça desteklenir."),
       },
       3,
     ),
@@ -1450,12 +1501,12 @@ export function generateQuestions(paragraph) {
         type: "Söylenemez",
         question: "Bu parçaya göre aşağıdakilerden hangisi söylenemez?",
         options: [
-          option(examSet.notSaidCorrect, true),
-          option(examSet.notSaidTruths?.[0] || support[0]),
-          option(examSet.notSaidTruths?.[1] || support[1] || analysis.direct),
-          option(examSet.notSaidTruths?.[2] || support[2] || analysis.mainIdea),
+          option(examSet.notSaidCorrect, true, makeWrongReason(explanationAnalysis)),
+          option(examSet.notSaidTruths?.[0] || support[0], false, makeEvidenceReason(explanationAnalysis, "Bu ifade parçada desteklendiği için söylenebilir.")),
+          option(examSet.notSaidTruths?.[1] || support[1] || analysis.direct, false, makeEvidenceReason(explanationAnalysis, "Bu ifade parçada desteklendiği için söylenebilir.")),
+          option(examSet.notSaidTruths?.[2] || support[2] || analysis.mainIdea, false, makeEvidenceReason(explanationAnalysis, "Bu ifade parçada desteklendiği için söylenebilir.")),
         ],
-        explanation: "Doğru seçenek, parçanın anlamıyla çelişen yargıdır.",
+        explanation: makeWrongReason(explanationAnalysis),
       },
       0,
     ),
@@ -1464,8 +1515,8 @@ export function generateQuestions(paragraph) {
         id: "inference",
         type: "Çıkarım",
         question: "Bu parçada anlatılanlardan hareketle aşağıdakilerden hangisi çıkarılabilir?",
-        options: [option(examSet.inferenceCorrect, true), ...distractors.inference.map((text) => option(text))],
-        explanation: "Doğru seçenek, metindeki bilgilerden mantıklı biçimde ulaşılabilen sonuçtur.",
+        options: optionsWithReasons([examSet.inferenceCorrect, ...distractors.inference], explanationAnalysis, examSet.inferenceCorrect),
+        explanation: makeEvidenceReason(explanationAnalysis, "Doğru seçenek, parçada verilenlerden ulaşılabilecek sonuçtur."),
       },
       1,
     ),
@@ -1474,8 +1525,8 @@ export function generateQuestions(paragraph) {
         id: "topic",
         type: "Konu",
         question: "Bu parçada üzerinde durulan konu aşağıdakilerden hangisidir?",
-        options: [option(examSet.topicCorrect, true), ...distractors.topic.map((text) => option(text))],
-        explanation: "Konu, parçanın genelinde üzerinde durulan duygu, düşünce ya da durumdur.",
+        options: optionsWithReasons([examSet.topicCorrect, ...distractors.topic], explanationAnalysis, examSet.topicCorrect),
+        explanation: makeEvidenceReason(explanationAnalysis, "Doğru seçenek, parçanın genelinde üzerinde durulan konuyu verir."),
       },
       2,
     ),

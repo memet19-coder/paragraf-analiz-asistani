@@ -64,6 +64,8 @@ function QuestionCard({ isSaved, onSave, question, revealAll }) {
   const hasSelection = Boolean(selectedKey);
   const selectedIsCorrect = selectedKey === question.correctKey;
   const showAnswer = revealAll || isVisible || hasSelection;
+  const selectedOption = question.options.find((option) => option.key === selectedKey);
+  const correctOption = question.options.find((option) => option.key === question.correctKey);
 
   useEffect(() => {
     setIsVisible(false);
@@ -153,11 +155,16 @@ function QuestionCard({ isSaved, onSave, question, revealAll }) {
               {selectedIsCorrect ? "Tebrikler, doğru işaretledin" : `Seçtiğin cevap: ${selectedKey}`}
             </div>
           ) : null}
+          {hasSelection && !selectedIsCorrect ? (
+            <p className="mb-3 rounded-md bg-white/70 px-3 py-2 text-sm leading-6 text-red-950">
+              {selectedOption?.reason || "Bu seçenek parçada verilen bilgilerle desteklenmez."}
+            </p>
+          ) : null}
           <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-emerald-900">
             <CheckCircle2 size={17} />
             Doğru cevap: {question.correctKey}
           </div>
-          <p className="text-sm leading-6 text-emerald-950">{question.explanation}</p>
+          <p className="text-sm leading-6 text-emerald-950">{correctOption?.reason || question.explanation}</p>
         </div>
       ) : null}
     </article>
