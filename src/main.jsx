@@ -9,7 +9,6 @@ import {
   Grid3X3,
   Layers3,
   Medal,
-  MousePointerClick,
   RotateCcw,
   Search,
   Shapes,
@@ -482,7 +481,7 @@ function ChallengeDisplay({ challenge, phase }) {
   );
 }
 
-function GamePanel({ challenge, exercise, onAnswer, onNext, phase, progress, result, selectedOption, setPhase }) {
+function GamePanel({ challenge, exercise, onAnswer, phase, progress, result, selectedOption }) {
   const Icon = exercise.icon;
 
   return (
@@ -510,14 +509,9 @@ function GamePanel({ challenge, exercise, onAnswer, onNext, phase, progress, res
       <ChallengeDisplay challenge={challenge} phase={phase} />
 
       {phase === "preview" ? (
-        <button
-          className="mt-4 inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-slate-950 px-4 text-sm font-bold text-white transition hover:bg-slate-800"
-          onClick={() => setPhase("answer")}
-          type="button"
-        >
-          <MousePointerClick size={17} />
-          Seçeneklere geç
-        </button>
+        <div className="mt-4 rounded-lg bg-slate-50 px-4 py-3 text-center text-sm font-bold text-slate-600">
+          Diziyi aklında tut. Seçenekler birazdan açılacak.
+        </div>
       ) : (
         <div className="mt-4 grid gap-2 sm:grid-cols-2">
           {challenge.options.map((item) => {
@@ -556,14 +550,6 @@ function GamePanel({ challenge, exercise, onAnswer, onNext, phase, progress, res
             Doğru cevap: <strong>{challenge.answerText}</strong>
             {result.leveledUp ? " · Seviye yükseldi." : ""}
           </p>
-          <button
-            className="mt-3 inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-slate-950 px-4 text-sm font-bold text-white transition hover:bg-slate-800"
-            onClick={onNext}
-            type="button"
-          >
-            <Sparkles size={16} />
-            Sonraki görev
-          </button>
         </div>
       ) : null}
     </section>
@@ -598,6 +584,26 @@ function App() {
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(progress));
   }, [progress]);
+
+  useEffect(() => {
+    if (phase !== "preview") return undefined;
+
+    const timer = window.setTimeout(() => {
+      setPhase("answer");
+    }, 1600);
+
+    return () => window.clearTimeout(timer);
+  }, [challenge, phase]);
+
+  useEffect(() => {
+    if (!result) return undefined;
+
+    const timer = window.setTimeout(() => {
+      startNewChallenge();
+    }, result.correct ? 650 : 1200);
+
+    return () => window.clearTimeout(timer);
+  }, [result]);
 
   function startNewChallenge(nextProgress = progress, nextId = activeId) {
     const nextChallenge = generateExercise(nextId, nextProgress[nextId].level);
@@ -726,12 +732,10 @@ function App() {
             challenge={challenge}
             exercise={activeExercise}
             onAnswer={handleAnswer}
-            onNext={() => startNewChallenge()}
             phase={phase}
             progress={activeProgress}
             result={result}
             selectedOption={selectedOption}
-            setPhase={setPhase}
           />
 
           <section className="grid gap-3 sm:grid-cols-3">
