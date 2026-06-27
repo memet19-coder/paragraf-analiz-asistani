@@ -65,6 +65,7 @@ const COMMON_ADJECTIVES = new Set([
   "kısa",
   "güçlü",
   "zayıf",
+  "sınırsız",
 ]);
 
 const COMMON_NOUNS = new Set([
@@ -125,6 +126,9 @@ const NON_NOUNS = new Set([
   "değil",
   "sanki",
   "sonuçta",
+  "ardından",
+  "ardın",
+  "etkisinde",
 ]);
 
 const SAFE_ADJECTIVES = new Set([
@@ -154,6 +158,7 @@ const SAFE_ADJECTIVES = new Set([
   "kısa",
   "güçlü",
   "zayıf",
+  "sınırsız",
   "canlı",
   "cansız",
   "kırmızı",
@@ -882,7 +887,11 @@ function isParticipleLike(word) {
 
 function isVerbalNounLike(word) {
   const base = stripNominalSuffixes(word);
-  return /(mak|mek|ma|me|ış|iş|uş|üş)$/.test(base) || /y[ıiuü]$/.test(word);
+  return (
+    /(mak|mek|ma|me|ış|iş|uş|üş)$/.test(base) ||
+    /(ma|me)(sı|si|sını|sini|sına|sine|sının|sinin|sından|sinden|yı|yi)$/i.test(word) ||
+    /y[ıiuü]$/.test(word)
+  );
 }
 
 function shouldSkipPhrase(first, second) {
@@ -932,6 +941,7 @@ function isSimpleNoun(word) {
 
 function isSimpleTamlanan(word) {
   if (SAFE_NOUN_ROOTS.has(word) || COMMON_NOUNS.has(word)) return false;
+  if (NON_NOUNS.has(word) || isVerbalNounLike(word)) return false;
 
   const withoutFinalVowel = word.replace(/[ıiuü]$/i, "");
   const softened = withoutFinalVowel.replace(/c$/i, "ç").replace(/ğ$/i, "k").replace(/d$/i, "t").replace(/b$/i, "p");
@@ -946,11 +956,33 @@ function isSimpleTamlanan(word) {
 }
 
 function cleanPhraseWord(word) {
-  return word.replace(/(da|de|ta|te|dan|den|tan|ten)$/i, "");
+  return word.replace(/(dır|dir|dur|dür|tır|tir|tur|tür)$/i, "").replace(/(da|de|ta|te|dan|den|tan|ten)$/i, "");
 }
 
 function formatPhrase(words, type) {
   return `${words.map(cleanPhraseWord).join(" ")} (${type})`;
+}
+
+function getDisplayedPhrase(item) {
+  return item.replace(/\s+\([^)]*\)$/u, "");
+}
+
+function removeNestedPhrases(items) {
+  const cleanItems = unique(items);
+
+  return cleanItems.filter((item) => {
+    const phrase = getDisplayedPhrase(item);
+    const wordCount = phrase.split(/\s+/).filter(Boolean).length;
+
+    return !cleanItems.some((other) => {
+      if (other === item) return false;
+
+      const otherPhrase = getDisplayedPhrase(other);
+      const otherWordCount = otherPhrase.split(/\s+/).filter(Boolean).length;
+
+      return otherWordCount > wordCount && otherPhrase.endsWith(` ${phrase}`);
+    });
+  });
 }
 
 function findPhrases(paragraph) {
@@ -1049,7 +1081,7 @@ function findPhrases(paragraph) {
 
   return {
     nounPhrases: unique(nounPhrases).slice(0, 18),
-    adjectivePhrases: unique(adjectivePhrases).slice(0, 18),
+    adjectivePhrases: removeNestedPhrases(adjectivePhrases).slice(0, 18),
   };
 }
 
