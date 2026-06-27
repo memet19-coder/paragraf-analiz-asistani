@@ -1,8 +1,11 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import {
+  ArrowLeft,
   ArrowDownUp,
+  BookOpenText,
   Brain,
+  Calculator,
   CheckCircle2,
   CircleDot,
   Eye,
@@ -16,6 +19,7 @@ import {
   Sparkles,
   Target,
   Trophy,
+  Zap,
   XCircle,
 } from "lucide-react";
 import "./styles.css";
@@ -48,6 +52,45 @@ const exercises = [
   { id: "kelime", title: "Kelime Odağı", skill: "sınıflama", icon: CircleDot, tone: "lime" },
   { id: "kod", title: "Kod Hafızası", skill: "eşleme", icon: Grid3X3, tone: "indigo" },
   { id: "desen", title: "Desen Tamamla", skill: "örüntü takibi", icon: Target, tone: "orange" },
+];
+
+const gameCategories = [
+  {
+    id: "hiz",
+    title: "Hız & Refleks",
+    subtitle: "Hızlı tepki ver",
+    exerciseIds: ["renk", "yon"],
+    icon: Zap,
+    accent: "from-violet-500 to-fuchsia-500",
+    chip: "bg-white/20 text-white",
+  },
+  {
+    id: "hafiza",
+    title: "Hafıza & Görsel",
+    subtitle: "Gördüğünü aklında tut",
+    exerciseIds: ["dizi", "harf", "sekil", "fark", "kod", "desen"],
+    icon: Brain,
+    accent: "from-cyan-500 to-blue-500",
+    chip: "bg-white/20 text-white",
+  },
+  {
+    id: "mantik",
+    title: "Mantık & Matematik",
+    subtitle: "Düşün, eşleştir, çöz",
+    exerciseIds: ["toplam"],
+    icon: Calculator,
+    accent: "from-emerald-500 to-teal-500",
+    chip: "bg-white/20 text-white",
+  },
+  {
+    id: "dil",
+    title: "Kelime & Dil",
+    subtitle: "Sözcük dikkatini geliştir",
+    exerciseIds: ["kelime"],
+    icon: BookOpenText,
+    accent: "from-amber-500 to-orange-500",
+    chip: "bg-white/20 text-white",
+  },
 ];
 
 const toneStyles = {
@@ -349,6 +392,54 @@ function ExerciseCard({ active, exercise, progress, onClick }) {
   );
 }
 
+function CategoryCard({ category, onClick }) {
+  const Icon = category.icon;
+
+  return (
+    <button
+      className={`group min-h-48 overflow-hidden rounded-[28px] bg-gradient-to-br ${category.accent} p-6 text-left text-white shadow-xl shadow-black/20 transition hover:-translate-y-1 hover:shadow-2xl`}
+      onClick={onClick}
+      type="button"
+    >
+      <div className="mb-10 flex items-start justify-between gap-4">
+        <span className="grid h-14 w-14 place-items-center rounded-2xl bg-white/20 text-white">
+          <Icon size={30} />
+        </span>
+        <span className="rounded-full bg-white/20 px-3 py-1 text-xs font-black text-white">{category.exerciseIds.length} oyun</span>
+      </div>
+      <h2 className="text-2xl font-black tracking-normal">{category.title}</h2>
+      <p className="mt-2 text-sm font-bold text-white/80">{category.subtitle}</p>
+    </button>
+  );
+}
+
+function GameListItem({ exercise, progress, onClick }) {
+  const Icon = exercise.icon;
+  const tone = toneStyles[exercise.tone] || toneStyles.blue;
+  const accuracy = progress.attempts > 0 ? Math.round((progress.correct / progress.attempts) * 100) : 0;
+
+  return (
+    <button
+      className="flex w-full items-center gap-5 rounded-[24px] border border-white/10 bg-white/10 p-5 text-left text-white shadow-lg shadow-black/10 transition hover:-translate-y-0.5 hover:bg-white/15"
+      onClick={onClick}
+      type="button"
+    >
+      <span className={`grid h-16 w-16 shrink-0 place-items-center rounded-2xl ${tone.soft}`}>
+        <Icon size={30} />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-xl font-black">{exercise.title}</span>
+        <span className="mt-1 block text-sm font-bold text-white/55">{exercise.skill}</span>
+        <span className="mt-3 inline-flex rounded-full bg-emerald-500/20 px-3 py-1 text-xs font-black text-emerald-200">Seviye {progress.level}</span>
+      </span>
+      <span className="hidden text-right text-xs font-bold text-white/55 sm:block">
+        {progress.attempts} deneme
+        <br />%{accuracy} başarı
+      </span>
+    </button>
+  );
+}
+
 function ChallengeDisplay({ challenge, phase }) {
   const display = challenge.display;
 
@@ -588,11 +679,14 @@ function GamePanel({ challenge, exercise, onAnswer, phase, progress, result, sel
 
 function App() {
   const [grade, setGrade] = useState("5");
-  const [activeId, setActiveId] = useState(exercises[0].id);
+  const [activeId, setActiveId] = useState(null);
+  const [activeCategoryId, setActiveCategoryId] = useState(null);
+  const [screen, setScreen] = useState("home");
   const [progress, setProgress] = useState(readProgress);
+  const activeCategory = gameCategories.find((category) => category.id === activeCategoryId) || null;
   const activeExercise = exercises.find((exercise) => exercise.id === activeId) || exercises[0];
-  const activeProgress = progress[activeId];
-  const [challenge, setChallenge] = useState(() => generateExercise(activeId, activeProgress.level));
+  const activeProgress = progress[activeExercise.id];
+  const [challenge, setChallenge] = useState(() => generateExercise(exercises[0].id, progress[exercises[0].id].level));
   const [phase, setPhase] = useState(challenge.preview ? "preview" : "answer");
   const [selectedOption, setSelectedOption] = useState(null);
   const [result, setResult] = useState(null);
@@ -635,7 +729,7 @@ function App() {
     return () => window.clearTimeout(timer);
   }, [result]);
 
-  function startNewChallenge(nextProgress = progress, nextId = activeId) {
+  function startNewChallenge(nextProgress = progress, nextId = activeExercise.id) {
     const nextChallenge = generateExercise(nextId, nextProgress[nextId].level);
     setChallenge(nextChallenge);
     setPhase(nextChallenge.preview ? "preview" : "answer");
@@ -645,19 +739,40 @@ function App() {
 
   function selectExercise(exerciseId) {
     setActiveId(exerciseId);
+    setScreen("play");
     startNewChallenge(progress, exerciseId);
+  }
+
+  function selectCategory(categoryId) {
+    setActiveCategoryId(categoryId);
+    setScreen("category");
+  }
+
+  function backToHome() {
+    setScreen("home");
+    setActiveCategoryId(null);
+    setActiveId(null);
+    setSelectedOption(null);
+    setResult(null);
+  }
+
+  function backToCategory() {
+    setScreen("category");
+    setActiveId(null);
+    setSelectedOption(null);
+    setResult(null);
   }
 
   function handleAnswer(item) {
     if (result) return;
 
-    const current = progress[activeId];
+    const current = progress[activeExercise.id];
     const nextStreak = item.correct ? current.streak + 1 : 0;
     const leveledUp = item.correct && nextStreak >= LEVEL_UP_STREAK && current.level < MAX_LEVEL;
     const nextLevel = leveledUp ? current.level + 1 : current.level;
     const nextProgress = {
       ...progress,
-      [activeId]: {
+      [activeExercise.id]: {
         level: nextLevel,
         bestLevel: Math.max(current.bestLevel, nextLevel),
         correct: current.correct + (item.correct ? 1 : 0),
@@ -674,10 +789,153 @@ function App() {
   function resetCurrent() {
     const nextProgress = {
       ...progress,
-      [activeId]: { level: 1, bestLevel: progress[activeId].bestLevel, correct: 0, attempts: 0, streak: 0 },
+      [activeExercise.id]: { level: 1, bestLevel: progress[activeExercise.id].bestLevel, correct: 0, attempts: 0, streak: 0 },
     };
     setProgress(nextProgress);
-    startNewChallenge(nextProgress, activeId);
+    startNewChallenge(nextProgress, activeExercise.id);
+  }
+
+  if (screen === "home") {
+    return (
+      <main className="min-h-screen bg-[#100b2b] text-white">
+        <div className="mx-auto flex min-h-screen w-full max-w-6xl flex-col px-5 py-8 sm:px-8">
+          <header className="mx-auto mb-8 max-w-xl text-center">
+            <div className="mx-auto mb-5 grid h-24 w-24 place-items-center rounded-full bg-orange-500 text-white shadow-2xl shadow-orange-500/30">
+              <Brain size={46} />
+            </div>
+            <h1 className="text-4xl font-black tracking-normal sm:text-5xl">Beyin Akademisi</h1>
+            <p className="mt-3 text-base font-bold text-white/55">10 oyun · 4 kategori · Odaklanmayı geliştir</p>
+          </header>
+
+          <section className="mb-5 flex flex-wrap items-center justify-between gap-3">
+            <p className="text-xs font-black uppercase tracking-[0.28em] text-white/40">Kategori seç</p>
+            <div className="flex flex-wrap gap-2">
+              {["4", "5", "6", "7", "8"].map((item) => (
+                <button
+                  className={`h-10 rounded-full px-5 text-sm font-black transition ${
+                    grade === item ? "bg-white text-[#100b2b]" : "bg-white/10 text-white/70 hover:bg-white/20"
+                  }`}
+                  key={item}
+                  onClick={() => setGrade(item)}
+                  type="button"
+                >
+                  {item}. sınıf
+                </button>
+              ))}
+            </div>
+          </section>
+
+          <section className="grid gap-4 md:grid-cols-2">
+            {gameCategories.map((category) => (
+              <CategoryCard category={category} key={category.id} onClick={() => selectCategory(category.id)} />
+            ))}
+          </section>
+
+          <section className="mt-6 grid gap-3 rounded-[24px] border border-white/10 bg-white/5 p-4 sm:grid-cols-3">
+            <div>
+              <span className="block text-xs font-bold text-white/45">Ortalama seviye</span>
+              <strong className="text-3xl font-black">{totals.averageLevel}</strong>
+            </div>
+            <div>
+              <span className="block text-xs font-bold text-white/45">Toplam doğru</span>
+              <strong className="text-3xl font-black">{totals.correct}</strong>
+            </div>
+            <div>
+              <span className="block text-xs font-bold text-white/45">Başarı</span>
+              <strong className="text-3xl font-black">%{totals.accuracy}</strong>
+            </div>
+          </section>
+        </div>
+      </main>
+    );
+  }
+
+  if (screen === "category" && activeCategory) {
+    const categoryExercises = activeCategory.exerciseIds.map((id) => exercises.find((exercise) => exercise.id === id)).filter(Boolean);
+    const CategoryIcon = activeCategory.icon;
+
+    return (
+      <main className="min-h-screen bg-[#100b2b] text-white">
+        <div className="mx-auto min-h-screen w-full max-w-5xl px-5 py-8 sm:px-8">
+          <button
+            className="mb-5 inline-flex h-11 items-center gap-2 rounded-full border border-white/10 bg-white/10 px-4 text-sm font-black text-white/75 transition hover:bg-white/15"
+            onClick={backToHome}
+            type="button"
+          >
+            <ArrowLeft size={17} />
+            Geri
+          </button>
+
+          <header className="mb-7 flex items-center gap-4">
+            <span className={`grid h-16 w-16 place-items-center rounded-[22px] bg-gradient-to-br ${activeCategory.accent} text-white shadow-xl shadow-black/20`}>
+              <CategoryIcon size={32} />
+            </span>
+            <div>
+              <h1 className="text-3xl font-black">{activeCategory.title}</h1>
+              <p className="mt-1 text-sm font-bold text-white/50">{categoryExercises.length} oyun · {activeCategory.subtitle}</p>
+            </div>
+          </header>
+
+          <section className="space-y-4">
+            {categoryExercises.map((exercise) => (
+              <GameListItem exercise={exercise} key={exercise.id} onClick={() => selectExercise(exercise.id)} progress={progress[exercise.id]} />
+            ))}
+          </section>
+        </div>
+      </main>
+    );
+  }
+
+  if (screen === "play") {
+    return (
+      <main className="min-h-screen bg-[#100b2b] text-white">
+        <div className="mx-auto min-h-screen w-full max-w-5xl px-5 py-6 sm:px-8">
+          <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+            <button
+              className="inline-flex h-11 items-center gap-2 rounded-full border border-white/10 bg-white/10 px-4 text-sm font-black text-white/75 transition hover:bg-white/15"
+              onClick={backToCategory}
+              type="button"
+            >
+              <ArrowLeft size={17} />
+              Oyunlar
+            </button>
+            <button
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-full border border-white/10 bg-white/10 px-4 text-sm font-black text-white/75 transition hover:bg-white/15"
+              onClick={resetCurrent}
+              type="button"
+            >
+              <RotateCcw size={16} />
+              Sıfırla
+            </button>
+          </div>
+
+          <GamePanel
+            challenge={challenge}
+            exercise={activeExercise}
+            onAnswer={handleAnswer}
+            phase={phase}
+            progress={activeProgress}
+            result={result}
+            selectedOption={selectedOption}
+          />
+
+          <section className="mt-5 grid gap-3 sm:grid-cols-3">
+            <div className="rounded-[22px] border border-white/10 bg-white/10 p-4">
+              <span className="block text-xs font-bold text-white/45">Seri</span>
+              <strong className="text-2xl font-black">{activeProgress.streak}/{LEVEL_UP_STREAK}</strong>
+            </div>
+            <div className="rounded-[22px] border border-white/10 bg-white/10 p-4">
+              <span className="block text-xs font-bold text-white/45">Seviye</span>
+              <strong className="text-2xl font-black">{activeProgress.level}</strong>
+            </div>
+            <div className="rounded-[22px] border border-white/10 bg-white/10 p-4">
+              <span className="block text-xs font-bold text-white/45">Toplam görev</span>
+              <strong className="text-2xl font-black">{totals.attempts}</strong>
+            </div>
+          </section>
+        </div>
+      </main>
+    );
   }
 
   return (
