@@ -55,7 +55,7 @@ const exercises = [
   { id: "fark", title: "Fark Bulucu", skill: "karşılaştırma", icon: Layers3, tone: "rose" },
   { id: "toplam", title: "Matematik Yarışı", skill: "hızlı hesaplama", icon: Sigma, tone: "teal" },
   { id: "buyukkucuk", title: "Sayı Düellosu", skill: "işlem karşılaştırma", icon: Calculator, tone: "blue" },
-  { id: "kelime", title: "Kelime Odağı", skill: "sınıflama", icon: CircleDot, tone: "lime" },
+  { id: "kelime", title: "Kavram Dedektifi", skill: "anlam ilişkisi", icon: CircleDot, tone: "lime" },
   { id: "kod", title: "Kod Hafızası", skill: "eşleme", icon: Grid3X3, tone: "indigo" },
   { id: "renkhafiza", title: "Renk Hafızası", skill: "sıralı hatırlama", icon: Brain, tone: "rose" },
   { id: "sirahafiza", title: "Sıra Takibi", skill: "dizi belleği", icon: Layers3, tone: "teal" },
@@ -63,7 +63,6 @@ const exercises = [
   { id: "anagram", title: "Anagram", skill: "harfleri sırala", icon: Grid3X3, tone: "sky" },
   { id: "esanlam", title: "Eş Anlam", skill: "anlam eşleştirme", icon: BookOpenText, tone: "emerald" },
   { id: "zitanlam", title: "Zıt Anlam", skill: "karşıt anlam", icon: ArrowDownUp, tone: "violet" },
-  { id: "anlamgrubu", title: "Anlam Grubu", skill: "kavram ilişkisi", icon: Target, tone: "indigo" },
 ];
 
 const gameCategories = [
@@ -98,7 +97,7 @@ const gameCategories = [
     id: "dil",
     title: "Kelime & Dil",
     subtitle: "Sözcük dikkatini geliştir",
-    exerciseIds: ["kelime", "anagram", "esanlam", "zitanlam", "anlamgrubu"],
+    exerciseIds: ["kelime", "anagram", "esanlam", "zitanlam"],
     icon: BookOpenText,
     accent: "from-amber-500 to-orange-500",
     chip: "bg-white/20 text-white",
@@ -133,13 +132,14 @@ const categorySets = [
 
 const wordBank = ["kalem", "kitap", "okul", "defter", "başarı", "dikkat", "oyun", "bilgi", "çalışma", "zihin", "öğretmen", "arkadaş", "gezegen", "orman", "deniz", "pencere"];
 
-const semanticGroups = [
-  { clue: "Gökyüzüyle ilgilidir.", correct: "bulut", wrong: ["kalem", "masa", "çanta"] },
-  { clue: "Okulda kullanılır.", correct: "defter", wrong: ["armut", "deniz", "kuş"] },
-  { clue: "Doğada bulunur.", correct: "orman", wrong: ["cetvel", "silgi", "koltuk"] },
-  { clue: "Ulaşım aracıdır.", correct: "tren", wrong: ["kitap", "elma", "tahta"] },
-  { clue: "Bir duyguyu anlatır.", correct: "sevinç", wrong: ["kapı", "bulut", "defter"] },
-  { clue: "Zamanı gösterir.", correct: "saat", wrong: ["deniz", "kalem", "balık"] },
+const analogySets = [
+  { minLevel: 5, stem: "Kalem : yazmak = Fırça : ?", answer: "boyamak", wrong: ["okumak", "ölçmek", "kesmek"] },
+  { minLevel: 5, stem: "Doktor : hastane = Öğretmen : ?", answer: "okul", wrong: ["liman", "orman", "pazar"] },
+  { minLevel: 6, stem: "Tohum : bitki = Yumurta : ?", answer: "civciv", wrong: ["ağaç", "balık", "meyve"] },
+  { minLevel: 6, stem: "Sebep : sonuç = Soru : ?", answer: "cevap", wrong: ["renk", "taşıt", "ses"] },
+  { minLevel: 7, stem: "Kanıt : düşünce = Örnek : ?", answer: "açıklama", wrong: ["gölge", "tahta", "sayı"] },
+  { minLevel: 8, stem: "Adalet : toplum = Dürüstlük : ?", answer: "güven", wrong: ["hız", "renk", "mesafe"] },
+  { minLevel: 9, stem: "Plan : başarı = Dikkat : ?", answer: "anlama", wrong: ["yükseklik", "sıcaklık", "gürültü"] },
 ];
 
 const synonymPairs = [
@@ -272,7 +272,6 @@ function generateExercise(exerciseId, level) {
   if (exerciseId === "anagram") return generateAnagramTask(safeLevel);
   if (exerciseId === "esanlam") return generateSynonymTask(safeLevel);
   if (exerciseId === "zitanlam") return generateAntonymTask(safeLevel);
-  if (exerciseId === "anlamgrubu") return generateSemanticGroupTask(safeLevel);
   return generatePatternTask(safeLevel);
 }
 
@@ -556,16 +555,43 @@ function generateCompareTask(level) {
 
 function generateWordTask(level) {
   const availableSets = categorySets.filter((set) => level >= set.minLevel);
-  const category = randomItem(availableSets);
-  const correctWord = randomItem(category.words);
-  const hardDistractors = level >= 7 ? shuffle(categorySets.flatMap((set) => set.words).filter((word) => !category.words.includes(word))).slice(0, 2) : [];
-  const options = unique([correctWord, ...shuffle([...category.distractors, ...hardDistractors]).slice(0, 3)]).slice(0, 4);
+  const allWords = categorySets.flatMap((set) => set.words);
+
+  if (level <= 3) {
+    const category = randomItem(availableSets);
+    const examples = shuffle(category.words).slice(0, 3);
+    const correctWord = randomItem(category.words.filter((word) => !examples.includes(word)) || category.words);
+    const options = unique([correctWord, ...shuffle(category.distractors).slice(0, 3)]).slice(0, 4);
+
+    return {
+      prompt: "Verilen kelimelerle aynı kavram alanına giren kelimeyi seç.",
+      display: { type: "wordFocus", label: examples.join(" • ") },
+      options: shuffle(options).map((text) => option(text, text === correctWord)),
+      answerText: correctWord,
+    };
+  }
+
+  if (level <= 6) {
+    const category = randomItem(availableSets.filter((set) => set.words.length >= 4));
+    const sameWords = shuffle(category.words).slice(0, 3);
+    const oddWord = randomItem(shuffle(allWords.filter((word) => !category.words.includes(word))));
+    const shownWords = shuffle([...sameWords, oddWord]);
+
+    return {
+      prompt: "Anlam ilişkisine göre diğerlerinden farklı olan kelimeyi seç.",
+      display: { type: "wordFocus", label: shownWords.join(" • ") },
+      options: shownWords.map((text) => option(text, text === oddWord)),
+      answerText: oddWord,
+    };
+  }
+
+  const relation = randomItem(analogySets.filter((item) => level >= item.minLevel));
 
   return {
-    prompt: `${category.name} grubuna ait olan kelimeyi seç.`,
-    display: { type: "wordFocus", label: category.name },
-    options: shuffle(options).map((text) => option(text, text === correctWord)),
-    answerText: correctWord,
+    prompt: "Anlam ilişkisini tamamlayan kelimeyi seç.",
+    display: { type: "wordFocus", label: relation.stem },
+    options: shuffle([relation.answer, ...relation.wrong]).map((text) => option(text, text === relation.answer)),
+    answerText: relation.answer,
   };
 }
 
@@ -680,17 +706,6 @@ function generateAntonymTask() {
     display: { type: "wordFocus", label: pair[0] },
     options: shuffle([pair[1], ...wrong]).map((text) => option(text, text === pair[1])),
     answerText: pair[1],
-  };
-}
-
-function generateSemanticGroupTask() {
-  const item = randomItem(semanticGroups);
-
-  return {
-    prompt: item.clue,
-    display: { type: "wordFocus", label: "Doğru kelimeyi seç" },
-    options: shuffle([item.correct, ...item.wrong]).map((text) => option(text, text === item.correct)),
-    answerText: item.correct,
   };
 }
 
