@@ -948,17 +948,17 @@ function ChallengeDisplay({ challenge, phase }) {
 
   if (display.type === "code") {
     return (
-      <div className="space-y-4 rounded-lg border border-slate-200 bg-white p-4 shadow-inner">
+      <div className="space-y-5 rounded-lg border border-slate-200 bg-white p-4 shadow-inner">
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
           {display.codeMap.map((item) => (
-            <span className="rounded-lg bg-indigo-50 px-3 py-2 text-center text-lg font-bold text-indigo-900" key={item.shape}>
-              {item.shape} = {item.code}
+            <span className="rounded-lg bg-indigo-50 px-3 py-3 text-center text-lg font-black text-indigo-950" key={item.shape}>
+              <span className="mr-2 text-xl text-indigo-700">{item.shape}</span>= {item.code}
             </span>
           ))}
         </div>
-        <div className="flex justify-center gap-2">
+        <div className="flex justify-center gap-3 rounded-xl bg-slate-950 px-4 py-5">
           {display.sequence.map((item, index) => (
-            <span className="grid h-12 w-12 place-items-center rounded-lg bg-slate-100 text-2xl" key={`${item.shape}-${index}`}>
+            <span className="grid h-14 w-14 place-items-center rounded-xl bg-white text-3xl font-black text-indigo-700 shadow-md" key={`${item.shape}-${index}`}>
               {item.shape}
             </span>
           ))}
