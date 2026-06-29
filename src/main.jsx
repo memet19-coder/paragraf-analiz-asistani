@@ -47,6 +47,7 @@ const exercises = [
   { id: "renk", title: "Renk Seçici", skill: "seçici dikkat", icon: Eye, tone: "emerald" },
   { id: "tepki", title: "Tepki Testi", skill: "hızlı karar", icon: Zap, tone: "orange" },
   { id: "dizi", title: "Sayı Hafızası", skill: "kısa süreli hafıza", icon: Brain, tone: "blue" },
+  { id: "gorselhafiza", title: "Görsel Hafıza", skill: "konum belleği", icon: Grid3X3, tone: "rose" },
   { id: "harf", title: "Harf Avı", skill: "görsel tarama", icon: Search, tone: "amber" },
   { id: "sekil", title: "Şekil Sayacı", skill: "ayrıntı takibi", icon: Shapes, tone: "violet" },
   { id: "yon", title: "Yön Takibi", skill: "dikkat sürdürme", icon: ArrowDownUp, tone: "sky" },
@@ -61,9 +62,7 @@ const exercises = [
   { id: "desen", title: "Örüntü Bul", skill: "dizi örüntüsü", icon: Target, tone: "orange" },
   { id: "anagram", title: "Anagram", skill: "harfleri sırala", icon: Grid3X3, tone: "sky" },
   { id: "esanlam", title: "Eş Anlam", skill: "anlam eşleştirme", icon: BookOpenText, tone: "emerald" },
-  { id: "kelimetamamla", title: "Kelime Tamamla", skill: "eksik harf bulma", icon: Shapes, tone: "rose" },
   { id: "zitanlam", title: "Zıt Anlam", skill: "karşıt anlam", icon: ArrowDownUp, tone: "violet" },
-  { id: "hece", title: "Hece Avı", skill: "ses farkındalığı", icon: BookOpenText, tone: "amber" },
   { id: "anlamgrubu", title: "Anlam Grubu", skill: "kavram ilişkisi", icon: Target, tone: "indigo" },
 ];
 
@@ -81,7 +80,7 @@ const gameCategories = [
     id: "hafiza",
     title: "Hafıza & Görsel",
     subtitle: "Gördüğünü aklında tut",
-    exerciseIds: ["dizi", "renkhafiza", "sirahafiza", "harf", "sekil", "fark", "kod"],
+    exerciseIds: ["dizi", "gorselhafiza", "renkhafiza", "sirahafiza", "harf", "sekil", "fark", "kod"],
     icon: Brain,
     accent: "from-cyan-500 to-blue-500",
     chip: "bg-white/20 text-white",
@@ -99,7 +98,7 @@ const gameCategories = [
     id: "dil",
     title: "Kelime & Dil",
     subtitle: "Sözcük dikkatini geliştir",
-    exerciseIds: ["kelime", "anagram", "esanlam", "zitanlam", "kelimetamamla", "hece", "anlamgrubu"],
+    exerciseIds: ["kelime", "anagram", "esanlam", "zitanlam", "anlamgrubu"],
     icon: BookOpenText,
     accent: "from-amber-500 to-orange-500",
     chip: "bg-white/20 text-white",
@@ -120,12 +119,16 @@ const toneStyles = {
 };
 
 const categorySets = [
-  { name: "Hayvan", words: ["kedi", "köpek", "kuş", "balık", "at", "arı"], distractors: ["masa", "kalem", "defter", "kapı"] },
-  { name: "Meyve", words: ["elma", "armut", "muz", "kiraz", "üzüm", "şeftali"], distractors: ["kitap", "çanta", "bulut", "tahta"] },
-  { name: "Renk", words: ["mavi", "yeşil", "sarı", "mor", "turuncu", "beyaz"], distractors: ["şehir", "yol", "ders", "oyun"] },
-  { name: "Okul eşyası", words: ["kalem", "silgi", "defter", "cetvel", "kitap"], distractors: ["elma", "bulut", "kedi", "deniz"] },
-  { name: "Taşıt", words: ["araba", "otobüs", "tren", "uçak", "gemi"], distractors: ["masa", "çiçek", "bulut", "defter"] },
-  { name: "Doğa", words: ["orman", "deniz", "dağ", "ırmak", "göl"], distractors: ["kalem", "saat", "kapı", "koltuk"] },
+  { minLevel: 1, name: "Hayvan", words: ["kedi", "köpek", "kuş", "balık", "at", "arı"], distractors: ["masa", "kalem", "defter", "kapı"] },
+  { minLevel: 1, name: "Meyve", words: ["elma", "armut", "muz", "kiraz", "üzüm", "şeftali"], distractors: ["kitap", "çanta", "bulut", "tahta"] },
+  { minLevel: 1, name: "Okul eşyası", words: ["kalem", "silgi", "defter", "cetvel", "kitap"], distractors: ["elma", "bulut", "kedi", "deniz"] },
+  { minLevel: 3, name: "Taşıt", words: ["araba", "otobüs", "tren", "uçak", "gemi"], distractors: ["masa", "çiçek", "bulut", "defter"] },
+  { minLevel: 3, name: "Doğa", words: ["orman", "deniz", "dağ", "ırmak", "göl"], distractors: ["kalem", "saat", "kapı", "koltuk"] },
+  { minLevel: 5, name: "Duygu", words: ["sevinç", "üzüntü", "korku", "öfke", "heyecan"], distractors: ["cetvel", "ırmak", "tren", "pencere"] },
+  { minLevel: 5, name: "Bilim", words: ["gezegen", "deney", "enerji", "mikrop", "madde"], distractors: ["armut", "koltuk", "oyuncak", "kapı"] },
+  { minLevel: 7, name: "Soyut kavram", words: ["özgürlük", "sorumluluk", "adalet", "emek", "saygı"], distractors: ["kalem", "gemi", "elma", "masa"] },
+  { minLevel: 8, name: "Düşünme becerisi", words: ["çıkarım", "yorum", "kanıt", "neden", "sonuç"], distractors: ["kiraz", "otobüs", "deniz", "silgi"] },
+  { minLevel: 9, name: "Kişilik özelliği", words: ["sabırlı", "dürüst", "kararlı", "çalışkan", "cesur"], distractors: ["mavi", "uzun", "yuvarlak", "soğuk"] },
 ];
 
 const wordBank = ["kalem", "kitap", "okul", "defter", "başarı", "dikkat", "oyun", "bilgi", "çalışma", "zihin", "öğretmen", "arkadaş", "gezegen", "orman", "deniz", "pencere"];
@@ -254,6 +257,7 @@ function generateExercise(exerciseId, level) {
   if (exerciseId === "renk") return generateColorTask(safeLevel);
   if (exerciseId === "tepki") return generateReactionTask(safeLevel);
   if (exerciseId === "dizi") return generateSequenceTask(safeLevel);
+  if (exerciseId === "gorselhafiza") return generateVisualMemoryTask(safeLevel);
   if (exerciseId === "harf") return generateLetterTask(safeLevel);
   if (exerciseId === "sekil") return generateShapeTask(safeLevel);
   if (exerciseId === "yon") return generateDirectionTask(safeLevel);
@@ -267,9 +271,7 @@ function generateExercise(exerciseId, level) {
   if (exerciseId === "sirahafiza") return generateOrderMemoryTask(safeLevel);
   if (exerciseId === "anagram") return generateAnagramTask(safeLevel);
   if (exerciseId === "esanlam") return generateSynonymTask(safeLevel);
-  if (exerciseId === "kelimetamamla") return generateCompleteWordTask(safeLevel);
   if (exerciseId === "zitanlam") return generateAntonymTask(safeLevel);
-  if (exerciseId === "hece") return generateSyllableTask(safeLevel);
   if (exerciseId === "anlamgrubu") return generateSemanticGroupTask(safeLevel);
   return generatePatternTask(safeLevel);
 }
@@ -301,12 +303,17 @@ function generateReactionTask(level) {
 }
 
 function generateSequenceTask(level) {
-  const length = clamp(3 + Math.floor(level / 2), 3, 8);
-  const sequence = Array.from({ length }, () => String(Math.floor(Math.random() * 9) + 1));
+  const length = clamp(3 + Math.floor((level - 1) / 2), 3, 9);
+  const maxNumber = level <= 3 ? 9 : level <= 5 ? 30 : level <= 7 ? 60 : 99;
+  const minNumber = level <= 3 ? 1 : level <= 7 ? 10 : 20;
+  const sequence = Array.from({ length }, () => String(Math.floor(Math.random() * (maxNumber - minNumber + 1)) + minNumber));
   const wrong = Array.from({ length: 3 }, (_, index) => {
     const copy = [...sequence];
     const pos = (index + level) % copy.length;
-    copy[pos] = String(((Number(copy[pos]) + index + 2) % 9) + 1);
+    const current = Number(copy[pos]);
+    const shift = level <= 3 ? index + 2 : (index + 1) * (level + 2);
+    copy[pos] = String(clamp(current + (index % 2 === 0 ? shift : -shift), minNumber, maxNumber));
+    if (copy[pos] === sequence[pos]) copy[pos] = String(current === maxNumber ? current - 1 : current + 1);
     return copy.join(" ");
   });
 
@@ -548,9 +555,11 @@ function generateCompareTask(level) {
 }
 
 function generateWordTask(level) {
-  const category = randomItem(categorySets);
+  const availableSets = categorySets.filter((set) => level >= set.minLevel);
+  const category = randomItem(availableSets);
   const correctWord = randomItem(category.words);
-  const options = unique([correctWord, ...shuffle(category.distractors).slice(0, 3 + Math.floor(level / 5))]).slice(0, 4);
+  const hardDistractors = level >= 7 ? shuffle(categorySets.flatMap((set) => set.words).filter((word) => !category.words.includes(word))).slice(0, 2) : [];
+  const options = unique([correctWord, ...shuffle([...category.distractors, ...hardDistractors]).slice(0, 3)]).slice(0, 4);
 
   return {
     prompt: `${category.name} grubuna ait olan kelimeyi seç.`,
@@ -561,11 +570,12 @@ function generateWordTask(level) {
 }
 
 function generateColorMemoryTask(level) {
-  const length = clamp(3 + Math.floor(level / 2), 3, 7);
-  const sequence = Array.from({ length }, () => randomItem(colors).name);
-  const correct = sequence.join(" - ");
+  const length = clamp(3 + Math.floor((level - 1) / 2), 3, 8);
+  const sequence = Array.from({ length }, () => randomItem(colors));
+  const sequenceNames = sequence.map((color) => color.name);
+  const correct = sequenceNames.join(" - ");
   const wrong = Array.from({ length: 3 }, (_, index) => {
-    const copy = [...sequence];
+    const copy = [...sequenceNames];
     const pos = (index + level) % copy.length;
     copy[pos] = randomItem(colors.filter((color) => color.name !== copy[pos])).name;
     return copy.join(" - ");
@@ -573,16 +583,43 @@ function generateColorMemoryTask(level) {
 
   return {
     prompt: "Renk sırasını aklında tut, sonra aynı sırayı seç.",
-    display: { type: "memory", items: sequence },
+    display: { type: "colorMemory", items: sequence },
     preview: true,
     options: shuffle([correct, ...wrong]).map((text) => option(text, text === correct)),
     answerText: correct,
   };
 }
 
+function generateVisualMemoryTask(level) {
+  const gridSize = level <= 3 ? 3 : level <= 7 ? 4 : 5;
+  const cellCount = gridSize * gridSize;
+  const activeCount = clamp(3 + Math.floor((level - 1) / 2), 3, gridSize === 3 ? 5 : gridSize === 4 ? 7 : 9);
+  const active = shuffle(Array.from({ length: cellCount }, (_, index) => index)).slice(0, activeCount).sort((a, b) => a - b);
+  const correct = active.map((index) => index + 1).join(" - ");
+  const wrong = Array.from({ length: 3 }, (_, index) => {
+    const copy = [...active];
+    const swapIndex = (index + level) % copy.length;
+    const replacements = Array.from({ length: cellCount }, (_, cellIndex) => cellIndex).filter((cellIndex) => !copy.includes(cellIndex));
+    copy[swapIndex] = randomItem(replacements);
+    return copy.sort((a, b) => a - b);
+  });
+
+  return {
+    prompt: "Ekranda yanan kareleri aklında tut, sonra aynı kareleri seç.",
+    display: { type: "visualMemory", gridSize, active },
+    preview: true,
+    options: shuffle([
+      option(correct, true, { gridSize, active }),
+      ...wrong.map((items) => option(items.map((index) => index + 1).join(" - "), false, { gridSize, active: items })),
+    ]),
+    answerText: correct,
+  };
+}
+
 function generateOrderMemoryTask(level) {
-  const length = clamp(3 + Math.floor(level / 2), 3, 7);
-  const pool = shuffle(letters).slice(0, 12);
+  const length = clamp(3 + Math.floor((level - 1) / 2), 3, 9);
+  const symbolPool = level >= 7 ? [...letters.slice(0, 12), ...shapeSymbols] : letters;
+  const pool = shuffle(symbolPool).slice(0, clamp(10 + level, 10, 18));
   const sequence = Array.from({ length }, () => randomItem(pool));
   const correct = sequence.join(" ");
   const wrong = Array.from({ length: 3 }, (_, index) => {
@@ -593,7 +630,7 @@ function generateOrderMemoryTask(level) {
   });
 
   return {
-    prompt: "Harf sırasını aklında tut, sonra aynı sırayı seç.",
+    prompt: level >= 7 ? "Harf ve sembol sırasını aklında tut, sonra aynı sırayı seç." : "Harf sırasını aklında tut, sonra aynı sırayı seç.",
     display: { type: "memory", items: sequence },
     preview: true,
     options: shuffle([correct, ...wrong]).map((text) => option(text, text === correct)),
@@ -643,39 +680,6 @@ function generateAntonymTask() {
     display: { type: "wordFocus", label: pair[0] },
     options: shuffle([pair[1], ...wrong]).map((text) => option(text, text === pair[1])),
     answerText: pair[1],
-  };
-}
-
-function generateCompleteWordTask() {
-  const correct = randomItem(wordBank.filter((word) => word.length >= 5));
-  const chars = correct.split("");
-  const hiddenIndex = Math.floor(chars.length / 2);
-  const missing = chars[hiddenIndex];
-  chars[hiddenIndex] = "_";
-  const wrongLetters = shuffle(letters.map((letter) => letter.toLocaleLowerCase("tr-TR")).filter((letter) => letter !== missing)).slice(0, 3);
-
-  return {
-    prompt: "Eksik harfi bulup kelimeyi tamamla.",
-    display: { type: "wordFocus", label: chars.join("") },
-    options: shuffle([missing, ...wrongLetters]).map((text) => option(text, text === missing)),
-    answerText: missing,
-  };
-}
-
-function countSyllables(word) {
-  const vowels = "aeıioöuü";
-  return Math.max(1, word.toLocaleLowerCase("tr-TR").split("").filter((letter) => vowels.includes(letter)).length);
-}
-
-function generateSyllableTask() {
-  const correct = randomItem(wordBank.filter((word) => word.length >= 4));
-  const count = countSyllables(correct);
-
-  return {
-    prompt: "Kelime kaç heceden oluşur?",
-    display: { type: "wordFocus", label: correct },
-    options: makeNumberOptions(count, 1, 6),
-    answerText: String(count),
   };
 }
 
@@ -835,6 +839,16 @@ function GameListItem({ exercise, progress, onClick }) {
   );
 }
 
+function MiniGridOption({ gridSize, active }) {
+  return (
+    <span className="inline-grid gap-1" style={{ gridTemplateColumns: `repeat(${gridSize}, minmax(0, 1fr))` }}>
+      {Array.from({ length: gridSize * gridSize }, (_, index) => (
+        <span className={`h-3 w-3 rounded-[3px] ${active.includes(index) ? "bg-pink-500" : "bg-slate-200"}`} key={index} />
+      ))}
+    </span>
+  );
+}
+
 function ChallengeDisplay({ challenge, phase }) {
   const display = challenge.display;
 
@@ -866,6 +880,48 @@ function ChallengeDisplay({ challenge, phase }) {
             ))}
           </div>
         )}
+      </div>
+    );
+  }
+
+  if (display.type === "colorMemory") {
+    return (
+      <div className="grid min-h-48 place-items-center rounded-lg border border-slate-200 bg-white p-5 shadow-inner">
+        {phase === "preview" ? (
+          <div className="flex flex-wrap justify-center gap-3">
+            {display.items.map((item, index) => (
+              <span className="grid h-16 w-16 place-items-center rounded-2xl text-xs font-black text-white shadow-lg" key={`${item.name}-${index}`} style={{ backgroundColor: item.hex }}>
+                {item.name}
+              </span>
+            ))}
+          </div>
+        ) : (
+          <div className="flex flex-wrap justify-center gap-2">
+            {display.items.map((_, index) => (
+              <span className="h-4 w-14 rounded-full bg-slate-300" key={index} />
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  if (display.type === "visualMemory") {
+    return (
+      <div className="grid min-h-48 place-items-center rounded-lg border border-slate-200 bg-white p-5 shadow-inner">
+        <div className="grid gap-2 rounded-3xl bg-slate-100 p-4" style={{ gridTemplateColumns: `repeat(${display.gridSize}, minmax(0, 1fr))` }}>
+          {Array.from({ length: display.gridSize * display.gridSize }, (_, index) => {
+            const active = phase === "preview" && display.active.includes(index);
+            return (
+              <span
+                className={`grid h-12 w-12 place-items-center rounded-xl text-xs font-black transition ${active ? "bg-pink-500 text-white shadow-lg shadow-pink-300" : "bg-white text-slate-400"}`}
+                key={index}
+              >
+                {phase === "preview" ? "" : index + 1}
+              </span>
+            );
+          })}
+        </div>
       </div>
     );
   }
@@ -1116,7 +1172,14 @@ function GamePanel({ challenge, exercise, onAnswer, phase, progress, result, sel
                 onClick={() => onAnswer(item)}
                 type="button"
               >
-                {item.visual?.shape || item.text}
+                {item.visual?.gridSize ? (
+                  <span className="flex items-center justify-between gap-3">
+                    <span>{item.text}</span>
+                    <MiniGridOption active={item.visual.active} gridSize={item.visual.gridSize} />
+                  </span>
+                ) : (
+                  item.visual?.shape || item.text
+                )}
               </button>
             );
           })}
