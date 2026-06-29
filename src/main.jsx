@@ -45,19 +45,27 @@ const letters = "ABCÇDEFGĞHIİJKLMNOÖPRSŞTUÜVYZ".split("");
 
 const exercises = [
   { id: "renk", title: "Renk Seçici", skill: "seçici dikkat", icon: Eye, tone: "emerald" },
+  { id: "tepki", title: "Tepki Testi", skill: "hızlı karar", icon: Zap, tone: "orange" },
   { id: "dizi", title: "Sayı Hafızası", skill: "kısa süreli hafıza", icon: Brain, tone: "blue" },
   { id: "harf", title: "Harf Avı", skill: "görsel tarama", icon: Search, tone: "amber" },
   { id: "sekil", title: "Şekil Sayacı", skill: "ayrıntı takibi", icon: Shapes, tone: "violet" },
   { id: "yon", title: "Yön Takibi", skill: "dikkat sürdürme", icon: ArrowDownUp, tone: "sky" },
+  { id: "karisikyon", title: "Karışık Yön", skill: "hızlı yön seçimi", icon: ArrowDownUp, tone: "sky" },
   { id: "fark", title: "Fark Bulucu", skill: "karşılaştırma", icon: Layers3, tone: "rose" },
   { id: "toplam", title: "Matematik Yarışı", skill: "hızlı hesaplama", icon: Sigma, tone: "teal" },
+  { id: "tekcift", title: "Tek mi Çift mi?", skill: "sayı dikkati", icon: CircleDot, tone: "lime" },
+  { id: "buyukkucuk", title: "Büyük Küçük", skill: "karşılaştırma", icon: Calculator, tone: "blue" },
   { id: "kelime", title: "Kelime Odağı", skill: "sınıflama", icon: CircleDot, tone: "lime" },
   { id: "kod", title: "Kod Hafızası", skill: "eşleme", icon: Grid3X3, tone: "indigo" },
+  { id: "renkhafiza", title: "Renk Hafızası", skill: "sıralı hatırlama", icon: Brain, tone: "rose" },
+  { id: "sirahafiza", title: "Sıra Takibi", skill: "dizi belleği", icon: Layers3, tone: "teal" },
   { id: "desen", title: "Örüntü Bul", skill: "dizi örüntüsü", icon: Target, tone: "orange" },
   { id: "anagram", title: "Anagram", skill: "harfleri sırala", icon: Grid3X3, tone: "sky" },
   { id: "esanlam", title: "Eş Anlam", skill: "anlam eşleştirme", icon: BookOpenText, tone: "emerald" },
   { id: "kelimetamamla", title: "Kelime Tamamla", skill: "eksik harf bulma", icon: Shapes, tone: "rose" },
   { id: "zitanlam", title: "Zıt Anlam", skill: "karşıt anlam", icon: ArrowDownUp, tone: "violet" },
+  { id: "hece", title: "Hece Avı", skill: "ses farkındalığı", icon: BookOpenText, tone: "amber" },
+  { id: "anlamgrubu", title: "Anlam Grubu", skill: "kavram ilişkisi", icon: Target, tone: "indigo" },
 ];
 
 const gameCategories = [
@@ -65,7 +73,7 @@ const gameCategories = [
     id: "hiz",
     title: "Hız & Refleks",
     subtitle: "Hızlı tepki ver",
-    exerciseIds: ["renk", "yon"],
+    exerciseIds: ["renk", "tepki", "yon", "karisikyon"],
     icon: Zap,
     accent: "from-violet-500 to-fuchsia-500",
     chip: "bg-white/20 text-white",
@@ -74,7 +82,7 @@ const gameCategories = [
     id: "hafiza",
     title: "Hafıza & Görsel",
     subtitle: "Gördüğünü aklında tut",
-    exerciseIds: ["dizi", "harf", "sekil", "fark", "kod"],
+    exerciseIds: ["dizi", "renkhafiza", "sirahafiza", "harf", "sekil", "fark", "kod"],
     icon: Brain,
     accent: "from-cyan-500 to-blue-500",
     chip: "bg-white/20 text-white",
@@ -83,7 +91,7 @@ const gameCategories = [
     id: "mantik",
     title: "Mantık & Matematik",
     subtitle: "Düşün, eşleştir, çöz",
-    exerciseIds: ["toplam", "desen"],
+    exerciseIds: ["toplam", "tekcift", "buyukkucuk", "desen"],
     icon: Calculator,
     accent: "from-emerald-500 to-teal-500",
     chip: "bg-white/20 text-white",
@@ -92,7 +100,7 @@ const gameCategories = [
     id: "dil",
     title: "Kelime & Dil",
     subtitle: "Sözcük dikkatini geliştir",
-    exerciseIds: ["kelime", "anagram", "esanlam", "kelimetamamla", "zitanlam"],
+    exerciseIds: ["kelime", "anagram", "esanlam", "zitanlam", "kelimetamamla", "hece", "anlamgrubu"],
     icon: BookOpenText,
     accent: "from-amber-500 to-orange-500",
     chip: "bg-white/20 text-white",
@@ -117,9 +125,20 @@ const categorySets = [
   { name: "Meyve", words: ["elma", "armut", "muz", "kiraz", "üzüm", "şeftali"], distractors: ["kitap", "çanta", "bulut", "tahta"] },
   { name: "Renk", words: ["mavi", "yeşil", "sarı", "mor", "turuncu", "beyaz"], distractors: ["şehir", "yol", "ders", "oyun"] },
   { name: "Okul eşyası", words: ["kalem", "silgi", "defter", "cetvel", "kitap"], distractors: ["elma", "bulut", "kedi", "deniz"] },
+  { name: "Taşıt", words: ["araba", "otobüs", "tren", "uçak", "gemi"], distractors: ["masa", "çiçek", "bulut", "defter"] },
+  { name: "Doğa", words: ["orman", "deniz", "dağ", "ırmak", "göl"], distractors: ["kalem", "saat", "kapı", "koltuk"] },
 ];
 
-const wordBank = ["kalem", "kitap", "okul", "defter", "başarı", "dikkat", "oyun", "bilgi", "çalışma", "zihin"];
+const wordBank = ["kalem", "kitap", "okul", "defter", "başarı", "dikkat", "oyun", "bilgi", "çalışma", "zihin", "öğretmen", "arkadaş", "gezegen", "orman", "deniz", "pencere"];
+
+const semanticGroups = [
+  { clue: "Gökyüzüyle ilgilidir.", correct: "bulut", wrong: ["kalem", "masa", "çanta"] },
+  { clue: "Okulda kullanılır.", correct: "defter", wrong: ["armut", "deniz", "kuş"] },
+  { clue: "Doğada bulunur.", correct: "orman", wrong: ["cetvel", "silgi", "koltuk"] },
+  { clue: "Ulaşım aracıdır.", correct: "tren", wrong: ["kitap", "elma", "tahta"] },
+  { clue: "Bir duyguyu anlatır.", correct: "sevinç", wrong: ["kapı", "bulut", "defter"] },
+  { clue: "Zamanı gösterir.", correct: "saat", wrong: ["deniz", "kalem", "balık"] },
+];
 
 const synonymPairs = [
   ["hızlı", "çabuk"],
@@ -234,18 +253,26 @@ function generateExercise(exerciseId, level) {
   const safeLevel = clamp(level, 1, MAX_LEVEL);
 
   if (exerciseId === "renk") return generateColorTask(safeLevel);
+  if (exerciseId === "tepki") return generateReactionTask(safeLevel);
   if (exerciseId === "dizi") return generateSequenceTask(safeLevel);
   if (exerciseId === "harf") return generateLetterTask(safeLevel);
   if (exerciseId === "sekil") return generateShapeTask(safeLevel);
   if (exerciseId === "yon") return generateDirectionTask(safeLevel);
+  if (exerciseId === "karisikyon") return generateMixedDirectionTask(safeLevel);
   if (exerciseId === "fark") return generateDifferenceTask(safeLevel);
   if (exerciseId === "toplam") return generateSumTask(safeLevel);
+  if (exerciseId === "tekcift") return generateOddEvenTask(safeLevel);
+  if (exerciseId === "buyukkucuk") return generateCompareTask(safeLevel);
   if (exerciseId === "kelime") return generateWordTask(safeLevel);
   if (exerciseId === "kod") return generateCodeTask(safeLevel);
+  if (exerciseId === "renkhafiza") return generateColorMemoryTask(safeLevel);
+  if (exerciseId === "sirahafiza") return generateOrderMemoryTask(safeLevel);
   if (exerciseId === "anagram") return generateAnagramTask(safeLevel);
   if (exerciseId === "esanlam") return generateSynonymTask(safeLevel);
   if (exerciseId === "kelimetamamla") return generateCompleteWordTask(safeLevel);
   if (exerciseId === "zitanlam") return generateAntonymTask(safeLevel);
+  if (exerciseId === "hece") return generateSyllableTask(safeLevel);
+  if (exerciseId === "anlamgrubu") return generateSemanticGroupTask(safeLevel);
   return generatePatternTask(safeLevel);
 }
 
@@ -259,6 +286,19 @@ function generateColorTask(level) {
     display: { type: "stroop", word: word.name, color: ink.hex },
     options: shuffle(optionColors).map((color) => option(color.name, color.name === ink.name)),
     answerText: ink.name,
+  };
+}
+
+function generateReactionTask(level) {
+  const pool = level < 4 ? shapeSymbols.slice(0, 4) : shapeSymbols;
+  const target = randomItem(pool);
+  const choices = unique([target, ...shuffle(pool.filter((shape) => shape !== target))]).slice(0, 4);
+
+  return {
+    prompt: "Ekrandaki hedef sembolü hızlıca seç.",
+    display: { type: "wordFocus", label: target },
+    options: shuffle(choices).map((shape) => option(shape, shape === target, { shape })),
+    answerText: target,
   };
 }
 
@@ -334,6 +374,24 @@ function generateDirectionTask(level) {
     display: { type: "arrowRow", items, target },
     options: makeNumberOptions(count, 0, 20),
     answerText: String(count),
+  };
+}
+
+function generateMixedDirectionTask(level) {
+  const directionNames = {
+    "↑": "Yukarı",
+    "↓": "Aşağı",
+    "←": "Sol",
+    "→": "Sağ",
+  };
+  const target = randomItem(arrows);
+  const choices = unique([target, ...shuffle(arrows.filter((arrow) => arrow !== target))]).slice(0, 4);
+
+  return {
+    prompt: level < 5 ? "Ortadaki okun yönünü seç." : "Yönü hızlı oku ve doğru cevabı seç.",
+    display: { type: "wordFocus", label: target },
+    options: shuffle(choices).map((arrow) => option(directionNames[arrow], arrow === target)),
+    answerText: directionNames[target],
   };
 }
 
@@ -426,6 +484,32 @@ function generateSumTask(level) {
   };
 }
 
+function generateOddEvenTask(level) {
+  const number = Math.floor(Math.random() * (level * 18 + 30)) + 1;
+  const correct = number % 2 === 0 ? "Çift" : "Tek";
+
+  return {
+    prompt: "Sayının tek mi çift mi olduğunu seç.",
+    display: { type: "mathExpression", expression: String(number) },
+    options: ["Tek", "Çift"].map((text) => option(text, text === correct)),
+    answerText: correct,
+  };
+}
+
+function generateCompareTask(level) {
+  const max = level < 4 ? 30 : level < 7 ? 80 : 150;
+  const left = Math.floor(Math.random() * max) + 1;
+  const right = Math.floor(Math.random() * max) + 1;
+  const correct = left > right ? ">" : left < right ? "<" : "=";
+
+  return {
+    prompt: "İki sayıyı karşılaştır.",
+    display: { type: "mathExpression", expression: `${left} ? ${right}` },
+    options: [">", "<", "="].map((text) => option(text, text === correct)),
+    answerText: correct,
+  };
+}
+
 function generateWordTask(level) {
   const category = randomItem(categorySets);
   const correctWord = randomItem(category.words);
@@ -436,6 +520,47 @@ function generateWordTask(level) {
     display: { type: "wordFocus", label: category.name },
     options: shuffle(options).map((text) => option(text, text === correctWord)),
     answerText: correctWord,
+  };
+}
+
+function generateColorMemoryTask(level) {
+  const length = clamp(3 + Math.floor(level / 2), 3, 7);
+  const sequence = Array.from({ length }, () => randomItem(colors).name);
+  const correct = sequence.join(" - ");
+  const wrong = Array.from({ length: 3 }, (_, index) => {
+    const copy = [...sequence];
+    const pos = (index + level) % copy.length;
+    copy[pos] = randomItem(colors.filter((color) => color.name !== copy[pos])).name;
+    return copy.join(" - ");
+  });
+
+  return {
+    prompt: "Renk sırasını aklında tut, sonra aynı sırayı seç.",
+    display: { type: "memory", items: sequence },
+    preview: true,
+    options: shuffle([correct, ...wrong]).map((text) => option(text, text === correct)),
+    answerText: correct,
+  };
+}
+
+function generateOrderMemoryTask(level) {
+  const length = clamp(3 + Math.floor(level / 2), 3, 7);
+  const pool = shuffle(letters).slice(0, 12);
+  const sequence = Array.from({ length }, () => randomItem(pool));
+  const correct = sequence.join(" ");
+  const wrong = Array.from({ length: 3 }, (_, index) => {
+    const copy = [...sequence];
+    const pos = (index + 1) % copy.length;
+    copy[pos] = randomItem(pool.filter((letter) => letter !== copy[pos]));
+    return copy.join(" ");
+  });
+
+  return {
+    prompt: "Harf sırasını aklında tut, sonra aynı sırayı seç.",
+    display: { type: "memory", items: sequence },
+    preview: true,
+    options: shuffle([correct, ...wrong]).map((text) => option(text, text === correct)),
+    answerText: correct,
   };
 }
 
@@ -497,6 +622,34 @@ function generateCompleteWordTask() {
     display: { type: "wordFocus", label: chars.join("") },
     options: shuffle([missing, ...wrongLetters]).map((text) => option(text, text === missing)),
     answerText: missing,
+  };
+}
+
+function countSyllables(word) {
+  const vowels = "aeıioöuü";
+  return Math.max(1, word.toLocaleLowerCase("tr-TR").split("").filter((letter) => vowels.includes(letter)).length);
+}
+
+function generateSyllableTask() {
+  const correct = randomItem(wordBank.filter((word) => word.length >= 4));
+  const count = countSyllables(correct);
+
+  return {
+    prompt: "Kelime kaç heceden oluşur?",
+    display: { type: "wordFocus", label: correct },
+    options: makeNumberOptions(count, 1, 6),
+    answerText: String(count),
+  };
+}
+
+function generateSemanticGroupTask() {
+  const item = randomItem(semanticGroups);
+
+  return {
+    prompt: item.clue,
+    display: { type: "wordFocus", label: "Doğru kelimeyi seç" },
+    options: shuffle([item.correct, ...item.wrong]).map((text) => option(text, text === item.correct)),
+    answerText: item.correct,
   };
 }
 
