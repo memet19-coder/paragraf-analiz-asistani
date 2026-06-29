@@ -622,22 +622,13 @@ function generateVisualMemoryTask(level) {
   const activeCount = clamp(3 + Math.floor((level - 1) / 2), 3, gridSize === 3 ? 5 : gridSize === 4 ? 7 : 9);
   const active = shuffle(Array.from({ length: cellCount }, (_, index) => index)).slice(0, activeCount).sort((a, b) => a - b);
   const correct = active.map((index) => index + 1).join(" - ");
-  const wrong = Array.from({ length: 3 }, (_, index) => {
-    const copy = [...active];
-    const swapIndex = (index + level) % copy.length;
-    const replacements = Array.from({ length: cellCount }, (_, cellIndex) => cellIndex).filter((cellIndex) => !copy.includes(cellIndex));
-    copy[swapIndex] = randomItem(replacements);
-    return copy.sort((a, b) => a - b);
-  });
 
   return {
     prompt: "Ekranda yanan kareleri aklında tut, sonra aynı kareleri seç.",
     display: { type: "visualMemory", gridSize, active },
+    inputMode: "visualRecall",
     preview: true,
-    options: shuffle([
-      option(correct, true, { gridSize, active }),
-      ...wrong.map((items) => option(items.map((index) => index + 1).join(" - "), false, { gridSize, active: items })),
-    ]),
+    options: [],
     answerText: correct,
   };
 }
@@ -864,7 +855,7 @@ function MiniGridOption({ gridSize, active }) {
   );
 }
 
-function ChallengeDisplay({ challenge, phase }) {
+function ChallengeDisplay({ challenge, phase, recallSelection = [], onToggleRecall, recallDisabled = false }) {
   const display = challenge.display;
 
   if (display.type === "stroop") {
@@ -926,14 +917,23 @@ function ChallengeDisplay({ challenge, phase }) {
       <div className="grid min-h-48 place-items-center rounded-lg border border-slate-200 bg-white p-5 shadow-inner">
         <div className="grid gap-2 rounded-3xl bg-slate-100 p-4" style={{ gridTemplateColumns: `repeat(${display.gridSize}, minmax(0, 1fr))` }}>
           {Array.from({ length: display.gridSize * display.gridSize }, (_, index) => {
-            const active = phase === "preview" && display.active.includes(index);
+            const active = phase === "preview" ? display.active.includes(index) : recallSelection.includes(index);
             return (
-              <span
-                className={`grid h-12 w-12 place-items-center rounded-xl text-xs font-black transition ${active ? "bg-pink-500 text-white shadow-lg shadow-pink-300" : "bg-white text-slate-400"}`}
+              <button
+                className={`grid h-12 w-12 place-items-center rounded-xl text-xs font-black transition ${
+                  active
+                    ? "bg-pink-500 text-white shadow-lg shadow-pink-300"
+                    : phase === "preview"
+                      ? "bg-white text-slate-400"
+                      : "bg-white text-slate-500 hover:bg-pink-50"
+                }`}
+                disabled={phase === "preview" || recallDisabled}
                 key={index}
+                onClick={() => onToggleRecall?.(index)}
+                type="button"
               >
                 {phase === "preview" ? "" : index + 1}
-              </span>
+              </button>
             );
           })}
         </div>
@@ -1106,6 +1106,34 @@ function GamePanel({ challenge, exercise, onAnswer, phase, progress, result, sel
   const levelPercent = (progress.level / MAX_LEVEL) * 100;
   const hasTimer = Boolean(timedSession?.active || timedSession?.finished);
   const timePercent = hasTimer && timedSession.totalSeconds > 0 ? (timedSession.secondsLeft / timedSession.totalSeconds) * 100 : 0;
+  const isVisualRecall = challenge.inputMode === "visualRecall";
+  const [recallSelection, setRecallSelection] = useState([]);
+
+  useEffect(() => {
+    setRecallSelection([]);
+  }, [challenge]);
+
+  function toggleRecallCell(index) {
+    if (result || phase === "preview") return;
+    const maxSelection = challenge.display.active.length;
+    setRecallSelection((current) => {
+      if (current.includes(index)) return current.filter((item) => item !== index);
+      if (current.length >= maxSelection) return current;
+      return [...current, index].sort((a, b) => a - b);
+    });
+  }
+
+  function submitVisualRecall() {
+    const selected = [...recallSelection].sort((a, b) => a - b);
+    const correctCells = [...challenge.display.active].sort((a, b) => a - b);
+    const correct = selected.length === correctCells.length && selected.every((item, index) => item === correctCells[index]);
+
+    onAnswer({
+      id: crypto.randomUUID(),
+      text: selected.map((index) => index + 1).join(" - "),
+      correct,
+    });
+  }
 
   return (
     <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
@@ -1160,11 +1188,33 @@ function GamePanel({ challenge, exercise, onAnswer, phase, progress, result, sel
         <p className="text-base font-black leading-7 text-slate-950">{challenge.prompt}</p>
       </div>
 
-      <ChallengeDisplay challenge={challenge} phase={phase} />
+      <ChallengeDisplay
+        challenge={challenge}
+        onToggleRecall={toggleRecallCell}
+        phase={phase}
+        recallDisabled={Boolean(result)}
+        recallSelection={recallSelection}
+      />
 
       {phase === "preview" ? (
         <div className="mt-4 rounded-lg bg-slate-50 px-4 py-3 text-center text-sm font-bold text-slate-600">
-          Diziyi aklında tut. Seçenekler birazdan açılacak.
+          {isVisualRecall ? "Yanan kareleri aklında tut. Kareler birazdan kapanacak." : "Diziyi aklında tut. Seçenekler birazdan açılacak."}
+        </div>
+      ) : isVisualRecall ? (
+        <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm font-bold text-slate-700">
+              Seçilen kare: {recallSelection.length}/{challenge.display.active.length}
+            </p>
+            <button
+              className="inline-flex h-11 items-center justify-center rounded-full bg-slate-950 px-5 text-sm font-black text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300"
+              disabled={Boolean(result) || recallSelection.length !== challenge.display.active.length}
+              onClick={submitVisualRecall}
+              type="button"
+            >
+              Kontrol et
+            </button>
+          </div>
         </div>
       ) : (
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
