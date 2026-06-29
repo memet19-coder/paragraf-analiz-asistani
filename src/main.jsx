@@ -53,8 +53,7 @@ const exercises = [
   { id: "karisikyon", title: "Yön Şaşırtmacası", skill: "tepki kontrolü", icon: ArrowDownUp, tone: "sky" },
   { id: "fark", title: "Fark Bulucu", skill: "karşılaştırma", icon: Layers3, tone: "rose" },
   { id: "toplam", title: "Matematik Yarışı", skill: "hızlı hesaplama", icon: Sigma, tone: "teal" },
-  { id: "tekcift", title: "Tek mi Çift mi?", skill: "sayı dikkati", icon: CircleDot, tone: "lime" },
-  { id: "buyukkucuk", title: "Büyük Küçük", skill: "karşılaştırma", icon: Calculator, tone: "blue" },
+  { id: "buyukkucuk", title: "Sayı Düellosu", skill: "işlem karşılaştırma", icon: Calculator, tone: "blue" },
   { id: "kelime", title: "Kelime Odağı", skill: "sınıflama", icon: CircleDot, tone: "lime" },
   { id: "kod", title: "Kod Hafızası", skill: "eşleme", icon: Grid3X3, tone: "indigo" },
   { id: "renkhafiza", title: "Renk Hafızası", skill: "sıralı hatırlama", icon: Brain, tone: "rose" },
@@ -91,7 +90,7 @@ const gameCategories = [
     id: "mantik",
     title: "Mantık & Matematik",
     subtitle: "Düşün, eşleştir, çöz",
-    exerciseIds: ["toplam", "tekcift", "buyukkucuk", "desen"],
+    exerciseIds: ["toplam", "buyukkucuk", "desen"],
     icon: Calculator,
     accent: "from-emerald-500 to-teal-500",
     chip: "bg-white/20 text-white",
@@ -261,7 +260,6 @@ function generateExercise(exerciseId, level) {
   if (exerciseId === "karisikyon") return generateMixedDirectionTask(safeLevel);
   if (exerciseId === "fark") return generateDifferenceTask(safeLevel);
   if (exerciseId === "toplam") return generateSumTask(safeLevel);
-  if (exerciseId === "tekcift") return generateOddEvenTask(safeLevel);
   if (exerciseId === "buyukkucuk") return generateCompareTask(safeLevel);
   if (exerciseId === "kelime") return generateWordTask(safeLevel);
   if (exerciseId === "kod") return generateCodeTask(safeLevel);
@@ -491,28 +489,60 @@ function generateSumTask(level) {
   };
 }
 
-function generateOddEvenTask(level) {
-  const number = Math.floor(Math.random() * (level * 18 + 30)) + 1;
-  const correct = number % 2 === 0 ? "Çift" : "Tek";
-
-  return {
-    prompt: "Sayının tek mi çift mi olduğunu seç.",
-    display: { type: "mathExpression", expression: String(number) },
-    options: ["Tek", "Çift"].map((text) => option(text, text === correct)),
-    answerText: correct,
-  };
-}
-
 function generateCompareTask(level) {
-  const max = level < 4 ? 30 : level < 7 ? 80 : 150;
-  const left = Math.floor(Math.random() * max) + 1;
-  const right = Math.floor(Math.random() * max) + 1;
-  const correct = left > right ? ">" : left < right ? "<" : "=";
+  function makeSide() {
+    if (level <= 2) {
+      const value = Math.floor(Math.random() * 30) + 1;
+      return { expression: String(value), value };
+    }
+
+    if (level <= 4) {
+      const first = Math.floor(Math.random() * 30) + 10;
+      const second = Math.floor(Math.random() * 20) + 2;
+      const operation = randomItem(["+", "-"]);
+      return operation === "+"
+        ? { expression: `${first} + ${second}`, value: first + second }
+        : { expression: `${first} - ${Math.min(first - 1, second)}`, value: first - Math.min(first - 1, second) };
+    }
+
+    if (level <= 6) {
+      const first = Math.floor(Math.random() * 9) + 2;
+      const second = Math.floor(Math.random() * 9) + 2;
+      const bonus = Math.floor(Math.random() * 15) + 3;
+      return Math.random() < 0.5
+        ? { expression: `${first} × ${second}`, value: first * second }
+        : { expression: `${first} × ${second} + ${bonus}`, value: first * second + bonus };
+    }
+
+    if (level <= 8) {
+      const first = Math.floor(Math.random() * 20) + 8;
+      const second = Math.floor(Math.random() * 12) + 4;
+      const third = Math.floor(Math.random() * 4) + 2;
+      return { expression: `(${first} + ${second}) × ${third}`, value: (first + second) * third };
+    }
+
+    const first = Math.floor(Math.random() * 8) + 3;
+    const second = Math.floor(Math.random() * 8) + 3;
+    const third = Math.floor(Math.random() * 30) + 10;
+    const fourth = Math.floor(Math.random() * 9) + 2;
+    return Math.random() < 0.5
+      ? { expression: `${first} × ${second} + ${third}`, value: first * second + third }
+      : { expression: `${third} + ${first} × ${fourth}`, value: third + first * fourth };
+  }
+
+  let left = makeSide();
+  let right = makeSide();
+
+  if (left.value === right.value && Math.random() < 0.75) {
+    right = makeSide();
+  }
+
+  const correct = left.value > right.value ? "Sol" : left.value < right.value ? "Sağ" : "Eşit";
 
   return {
-    prompt: "İki sayıyı karşılaştır.",
-    display: { type: "mathExpression", expression: `${left} ? ${right}` },
-    options: [">", "<", "="].map((text) => option(text, text === correct)),
+    prompt: "Hangi tarafın sonucu daha büyük?",
+    display: { type: "compareDuel", left: left.expression, right: right.expression },
+    options: ["Sol", "Sağ", "Eşit"].map((text) => option(text, text === correct)),
     answerText: correct,
   };
 }
@@ -933,6 +963,24 @@ function ChallengeDisplay({ challenge, phase }) {
         <div className="text-center">
           <span className="text-sm font-semibold text-slate-500">Hızlı hesapla</span>
           <strong className="block text-6xl font-black text-slate-950">{display.expression}</strong>
+        </div>
+      </div>
+    );
+  }
+
+  if (display.type === "compareDuel") {
+    return (
+      <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-inner">
+        <div className="grid items-stretch gap-4 sm:grid-cols-[1fr_auto_1fr]">
+          <div className="grid min-h-36 place-items-center rounded-2xl bg-blue-50 p-4 text-center">
+            <span className="mb-2 block text-xs font-black uppercase tracking-[0.2em] text-blue-500">Sol</span>
+            <strong className="text-4xl font-black text-blue-950">{display.left}</strong>
+          </div>
+          <div className="grid place-items-center text-3xl font-black text-slate-400">?</div>
+          <div className="grid min-h-36 place-items-center rounded-2xl bg-orange-50 p-4 text-center">
+            <span className="mb-2 block text-xs font-black uppercase tracking-[0.2em] text-orange-500">Sağ</span>
+            <strong className="text-4xl font-black text-orange-950">{display.right}</strong>
+          </div>
         </div>
       </div>
     );
