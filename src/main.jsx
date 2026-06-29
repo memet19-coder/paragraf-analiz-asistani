@@ -50,7 +50,7 @@ const exercises = [
   { id: "harf", title: "Harf Avı", skill: "görsel tarama", icon: Search, tone: "amber" },
   { id: "sekil", title: "Şekil Sayacı", skill: "ayrıntı takibi", icon: Shapes, tone: "violet" },
   { id: "yon", title: "Yön Takibi", skill: "dikkat sürdürme", icon: ArrowDownUp, tone: "sky" },
-  { id: "karisikyon", title: "Karışık Yön", skill: "hızlı yön seçimi", icon: ArrowDownUp, tone: "sky" },
+  { id: "karisikyon", title: "Yön Şaşırtmacası", skill: "tepki kontrolü", icon: ArrowDownUp, tone: "sky" },
   { id: "fark", title: "Fark Bulucu", skill: "karşılaştırma", icon: Layers3, tone: "rose" },
   { id: "toplam", title: "Matematik Yarışı", skill: "hızlı hesaplama", icon: Sigma, tone: "teal" },
   { id: "tekcift", title: "Tek mi Çift mi?", skill: "sayı dikkati", icon: CircleDot, tone: "lime" },
@@ -384,14 +384,21 @@ function generateMixedDirectionTask(level) {
     "←": "Sol",
     "→": "Sağ",
   };
-  const target = randomItem(arrows);
-  const choices = unique([target, ...shuffle(arrows.filter((arrow) => arrow !== target))]).slice(0, 4);
+  const opposites = {
+    "↑": "↓",
+    "↓": "↑",
+    "←": "→",
+    "→": "←",
+  };
+  const arrow = randomItem(arrows);
+  const isReverse = level >= 2 && Math.random() < Math.min(0.35 + level * 0.05, 0.75);
+  const correctArrow = isReverse ? opposites[arrow] : arrow;
 
   return {
-    prompt: level < 5 ? "Ortadaki okun yönünü seç." : "Yönü hızlı oku ve doğru cevabı seç.",
-    display: { type: "wordFocus", label: target },
-    options: shuffle(choices).map((arrow) => option(directionNames[arrow], arrow === target)),
-    answerText: directionNames[target],
+    prompt: "Yeşil okta aynı yönü, kırmızı okta ters yönü seç.",
+    display: { type: "trickArrow", arrow, mode: isReverse ? "reverse" : "same" },
+    options: arrows.map((item) => option(directionNames[item], item === correctArrow)),
+    answerText: directionNames[correctArrow],
   };
 }
 
@@ -870,6 +877,24 @@ function ChallengeDisplay({ challenge, phase }) {
               {item}
             </span>
           ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (display.type === "trickArrow") {
+    const isReverse = display.mode === "reverse";
+
+    return (
+      <div className="grid min-h-48 place-items-center rounded-lg border border-slate-200 bg-white p-5 shadow-inner">
+        <div className="text-center">
+          <div className={`mx-auto mb-3 grid h-24 w-24 place-items-center rounded-[28px] ${isReverse ? "bg-red-50 text-red-600" : "bg-emerald-50 text-emerald-600"}`}>
+            <span className="text-7xl font-black leading-none">{display.arrow}</span>
+          </div>
+          <div className="space-y-1 text-lg font-black">
+            <p className="text-emerald-600">YEŞİL OK: Gösterdiği yöne bas.</p>
+            <p className="text-red-500">KIRMIZI OK: Tam tersi yöne bas.</p>
+          </div>
         </div>
       </div>
     );
