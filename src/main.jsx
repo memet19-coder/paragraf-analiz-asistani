@@ -825,21 +825,20 @@ function GameListItem({ exercise, progress, onClick }) {
 
   return (
     <button
-      className="flex w-full items-center gap-5 rounded-[24px] border border-white/10 bg-white/10 p-5 text-left text-white shadow-lg shadow-black/10 transition hover:-translate-y-0.5 hover:bg-white/15"
+      className="group flex min-h-44 flex-col items-center justify-between rounded-[24px] border border-white/10 bg-white/10 p-4 text-center text-white shadow-lg shadow-black/10 transition hover:-translate-y-0.5 hover:bg-white/15"
       onClick={onClick}
       type="button"
     >
-      <span className={`grid h-16 w-16 shrink-0 place-items-center rounded-2xl ${tone.soft}`}>
-        <Icon size={30} />
+      <span className={`grid h-16 w-16 place-items-center rounded-2xl ${tone.soft}`}>
+        <Icon size={29} />
       </span>
-      <span className="min-w-0 flex-1">
-        <span className="block text-xl font-black">{exercise.title}</span>
-        <span className="mt-1 block text-sm font-bold text-white/55">{exercise.skill}</span>
-        <span className="mt-3 inline-flex rounded-full bg-emerald-500/20 px-3 py-1 text-xs font-black text-emerald-200">Seviye {progress.level}</span>
+      <span className="mt-3 block min-w-0">
+        <span className="block text-base font-black leading-tight">{exercise.title}</span>
+        <span className="mt-1 block text-xs font-bold leading-tight text-white/55">{exercise.skill}</span>
       </span>
-      <span className="hidden text-right text-xs font-bold text-white/55 sm:block">
-        {progress.attempts} deneme
-        <br />%{accuracy} başarı
+      <span className="mt-3 flex flex-wrap items-center justify-center gap-2">
+        <span className="rounded-full bg-emerald-500/20 px-3 py-1 text-xs font-black text-emerald-200">Seviye {progress.level}</span>
+        <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-black text-white/50">%{accuracy}</span>
       </span>
     </button>
   );
@@ -1521,7 +1520,7 @@ function App() {
             </div>
           </header>
 
-          <section className="space-y-4">
+          <section className="grid grid-cols-2 gap-4 md:grid-cols-3">
             {categoryExercises.map((exercise) => (
               <GameListItem exercise={exercise} key={exercise.id} onClick={() => selectExercise(exercise.id)} progress={progress[exercise.id]} />
             ))}
