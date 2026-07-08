@@ -855,7 +855,7 @@ function MiniGridOption({ gridSize, active }) {
   );
 }
 
-function ChallengeDisplay({ challenge, phase, recallSelection = [], onToggleRecall, recallDisabled = false }) {
+function ChallengeDisplay({ challenge, phase, recallSelection = [], onToggleRecall, recallDisabled = false, result = null }) {
   const display = challenge.display;
 
   if (display.type === "stroop") {
@@ -918,10 +918,13 @@ function ChallengeDisplay({ challenge, phase, recallSelection = [], onToggleReca
         <div className="grid gap-2 rounded-3xl bg-slate-100 p-4" style={{ gridTemplateColumns: `repeat(${display.gridSize}, minmax(0, 1fr))` }}>
           {Array.from({ length: display.gridSize * display.gridSize }, (_, index) => {
             const active = phase === "preview" ? display.active.includes(index) : recallSelection.includes(index);
+            const wrongFlash = result && !result.correct && recallSelection.includes(index);
             return (
               <button
                 className={`grid h-12 w-12 place-items-center rounded-xl text-xs font-black transition ${
-                  active
+                  wrongFlash
+                    ? "bg-red-500 text-white shadow-lg shadow-red-300"
+                    : active
                     ? "bg-pink-500 text-white shadow-lg shadow-pink-300"
                     : phase === "preview"
                       ? "bg-white text-slate-400"
@@ -1113,6 +1116,17 @@ function GamePanel({ challenge, exercise, onAnswer, phase, progress, result, sel
     setRecallSelection([]);
   }, [challenge]);
 
+  useEffect(() => {
+    if (!isVisualRecall || phase === "preview" || result) return undefined;
+    if (recallSelection.length !== challenge.display.active.length) return undefined;
+
+    const timer = window.setTimeout(() => {
+      submitVisualRecall();
+    }, 180);
+
+    return () => window.clearTimeout(timer);
+  }, [challenge, isVisualRecall, phase, recallSelection, result]);
+
   function toggleRecallCell(index) {
     if (result || phase === "preview") return;
     const maxSelection = challenge.display.active.length;
@@ -1132,6 +1146,7 @@ function GamePanel({ challenge, exercise, onAnswer, phase, progress, result, sel
       id: crypto.randomUUID(),
       text: selected.map((index) => index + 1).join(" - "),
       correct,
+      visualRecall: true,
     });
   }
 
@@ -1194,6 +1209,7 @@ function GamePanel({ challenge, exercise, onAnswer, phase, progress, result, sel
         phase={phase}
         recallDisabled={Boolean(result)}
         recallSelection={recallSelection}
+        result={result}
       />
 
       {phase === "preview" ? (
@@ -1202,19 +1218,9 @@ function GamePanel({ challenge, exercise, onAnswer, phase, progress, result, sel
         </div>
       ) : isVisualRecall ? (
         <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-4">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-sm font-bold text-slate-700">
-              Seçilen kare: {recallSelection.length}/{challenge.display.active.length}
-            </p>
-            <button
-              className="inline-flex h-11 items-center justify-center rounded-full bg-slate-950 px-5 text-sm font-black text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300"
-              disabled={Boolean(result) || recallSelection.length !== challenge.display.active.length}
-              onClick={submitVisualRecall}
-              type="button"
-            >
-              Kontrol et
-            </button>
-          </div>
+          <p className="text-sm font-bold text-slate-700">
+            Seçilen kare: {recallSelection.length}/{challenge.display.active.length}
+          </p>
         </div>
       ) : (
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -1251,7 +1257,7 @@ function GamePanel({ challenge, exercise, onAnswer, phase, progress, result, sel
         </div>
       )}
 
-      {result ? (
+      {result && !result.visualRecall ? (
         <div className={`mt-4 rounded-lg border p-4 ${result.correct ? "border-emerald-200 bg-emerald-50" : "border-red-200 bg-red-50"}`}>
           <div className={`mb-1 flex items-center gap-2 text-sm font-bold ${result.correct ? "text-emerald-900" : "text-red-900"}`}>
             {result.correct ? <CheckCircle2 size={17} /> : <XCircle size={17} />}
@@ -1312,10 +1318,11 @@ function App() {
 
   useEffect(() => {
     if (!result) return undefined;
+    const nextDelay = result.visualRecall ? (result.correct ? 220 : 850) : result.correct ? 650 : 1100;
 
     const timer = window.setTimeout(() => {
       startNewChallenge(progress, activeExercise.id);
-    }, result.correct ? 650 : 1100);
+    }, nextDelay);
 
     return () => window.clearTimeout(timer);
   }, [activeExercise.id, progress, result]);
@@ -1406,7 +1413,7 @@ function App() {
     };
 
     setSelectedOption(item);
-    setResult({ correct, leveledUp, timedOut });
+    setResult({ correct, leveledUp, timedOut, visualRecall: Boolean(item?.visualRecall) });
     setProgress(nextProgress);
     if (timedSession.active) {
       setTimedSession((currentSession) => ({
