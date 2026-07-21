@@ -25,10 +25,11 @@ import {
 import "./styles.css";
 
 const STORAGE_KEY = "odak-atolyesi-progress";
-const MAX_LEVEL = 10;
+const LOGO_SRC = "/mg-logo.png";
+const MAX_LEVEL = 30;
 const LEVEL_UP_STREAK = 3;
-const TIMED_SESSION_BASE_SECONDS = 32;
-const TIMED_SESSION_MIN_SECONDS = 10;
+const TIMED_SESSION_BASE_SECONDS = 16;
+const TIMED_SESSION_MIN_SECONDS = 3;
 
 const colors = [
   { name: "Kırmızı", hex: "#dc2626", bg: "bg-red-500" },
@@ -211,13 +212,14 @@ function makeMathOptions(correct) {
 
 function makeProgress() {
   return exercises.reduce((progress, exercise) => {
-    progress[exercise.id] = { level: 1, bestLevel: 1, correct: 0, attempts: 0, streak: 0 };
+    progress[exercise.id] = { level: 1, bestLevel: 1, bestScore: 0, correct: 0, attempts: 0, streak: 0 };
     return progress;
   }, {});
 }
 
 function getTimedSessionSeconds(level) {
-  return Math.max(TIMED_SESSION_MIN_SECONDS, TIMED_SESSION_BASE_SECONDS - (clamp(level, 1, MAX_LEVEL) - 1) * 2);
+  const safeLevel = clamp(level, 1, MAX_LEVEL);
+  return Math.max(TIMED_SESSION_MIN_SECONDS, TIMED_SESSION_BASE_SECONDS - Math.floor((safeLevel - 1) * 1.25));
 }
 
 function makeTimedSession(level, score = 0, mistakes = 0) {
@@ -245,7 +247,12 @@ const emptyTimedSession = {
 function readProgress() {
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
-    return { ...makeProgress(), ...saved };
+    const baseProgress = makeProgress();
+
+    return exercises.reduce((merged, exercise) => {
+      merged[exercise.id] = { ...baseProgress[exercise.id], ...(saved[exercise.id] || {}) };
+      return merged;
+    }, {});
   } catch {
     return makeProgress();
   }
@@ -278,13 +285,16 @@ function generateExercise(exerciseId, level) {
 function generateColorTask(level) {
   const ink = randomItem(colors);
   const word = randomItem(colors.filter((color) => color.name !== ink.name));
-  const optionColors = [ink, ...shuffle(colors.filter((color) => color.name !== ink.name)).slice(0, 3 + Math.min(1, Math.floor(level / 5)))];
+  const useWordMeaning = level >= 8 && Math.random() < Math.min(0.25 + (level - 8) * 0.05, 0.7);
+  const correctName = useWordMeaning ? word.name : ink.name;
+  const optionCount = level >= 12 ? colors.length : level >= 5 ? 5 : 4;
+  const optionNames = unique([correctName, ...shuffle(colors.map((color) => color.name).filter((name) => name !== correctName))]).slice(0, optionCount);
 
   return {
-    prompt: "Yazının rengini seç.",
+    prompt: useWordMeaning ? "Kelimenin söylediği rengi seç." : "Yazının rengini seç.",
     display: { type: "stroop", word: word.name, color: ink.hex },
-    options: shuffle(optionColors).map((color) => option(color.name, color.name === ink.name)),
-    answerText: ink.name,
+    options: shuffle(optionNames).map((name) => option(name, name === correctName)),
+    answerText: correctName,
   };
 }
 
@@ -784,7 +794,7 @@ function ExerciseCard({ active, exercise, progress, onClick }) {
           <Icon size={20} />
         </span>
         <span className={`rounded-md px-2 py-1 text-xs font-bold ${active ? "bg-white text-slate-950" : "bg-slate-100 text-slate-700"}`}>
-          Seviye {progress.level}
+          Kademe {progress.level}
         </span>
       </div>
       <h3 className="text-sm font-bold">{exercise.title}</h3>
@@ -837,7 +847,8 @@ function GameListItem({ exercise, progress, onClick }) {
         <span className="mt-1 block text-xs font-bold leading-tight text-white/55">{exercise.skill}</span>
       </span>
       <span className="mt-3 flex flex-wrap items-center justify-center gap-2">
-        <span className="rounded-full bg-emerald-500/20 px-3 py-1 text-xs font-black text-emerald-200">Seviye {progress.level}</span>
+        <span className="rounded-full bg-emerald-500/20 px-3 py-1 text-xs font-black text-emerald-200">Kademe {progress.level}</span>
+        <span className="rounded-full bg-amber-500/20 px-3 py-1 text-xs font-black text-amber-200">Rekor {progress.bestScore || 0}</span>
         <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-black text-white/50">%{accuracy}</span>
       </span>
     </button>
@@ -1105,7 +1116,7 @@ function ChallengeDisplay({ challenge, phase, recallSelection = [], onToggleReca
 function GamePanel({ challenge, exercise, onAnswer, phase, progress, result, selectedOption, timedSession }) {
   const Icon = exercise.icon;
   const tone = toneStyles[exercise.tone] || toneStyles.blue;
-  const levelPercent = (progress.level / MAX_LEVEL) * 100;
+  const nextLevelPercent = (progress.streak / LEVEL_UP_STREAK) * 100;
   const hasTimer = Boolean(timedSession?.active || timedSession?.finished);
   const timePercent = hasTimer && timedSession.totalSeconds > 0 ? (timedSession.secondsLeft / timedSession.totalSeconds) * 100 : 0;
   const isVisualRecall = challenge.inputMode === "visualRecall";
@@ -1160,22 +1171,28 @@ function GamePanel({ challenge, exercise, onAnswer, phase, progress, result, sel
           </span>
           <div>
             <h2 className="text-lg font-bold text-slate-950">{exercise.title}</h2>
-            <p className="text-sm text-slate-500">Seviye {progress.level} · Seri {progress.streak}/{LEVEL_UP_STREAK}</p>
+            <p className="text-sm text-slate-500">Kademe {progress.level} · Sonraki kademe için {progress.streak}/{LEVEL_UP_STREAK}</p>
           </div>
         </div>
-        <span className="inline-flex items-center gap-2 rounded-lg bg-emerald-50 px-3 py-2 text-sm font-bold text-emerald-800">
-          <Medal size={16} />
-          En iyi seviye {progress.bestLevel}
-        </span>
+        <div className="flex flex-wrap gap-2">
+          <span className="inline-flex items-center gap-2 rounded-lg bg-emerald-50 px-3 py-2 text-sm font-bold text-emerald-800">
+            <Medal size={16} />
+            En iyi kademe {progress.bestLevel}
+          </span>
+          <span className="inline-flex items-center gap-2 rounded-lg bg-amber-50 px-3 py-2 text-sm font-bold text-amber-800">
+            <Trophy size={16} />
+            Rekor {progress.bestScore || 0} doğru
+          </span>
+        </div>
       </div>
 
       <div className="mb-4">
         <div className="mb-2 flex items-center justify-between text-xs font-bold text-slate-500">
-          <span>Seviye ilerlemesi</span>
-          <span>{progress.level}/{MAX_LEVEL}</span>
+          <span>Sonraki kademe</span>
+          <span>{progress.streak}/{LEVEL_UP_STREAK} doğru</span>
         </div>
         <div className="h-2 rounded-full bg-slate-100">
-          <div className={`h-full rounded-full ${tone.line}`} style={{ width: `${levelPercent}%` }} />
+          <div className={`h-full rounded-full ${tone.line}`} style={{ width: `${nextLevelPercent}%` }} />
         </div>
       </div>
 
@@ -1184,7 +1201,7 @@ function GamePanel({ challenge, exercise, onAnswer, phase, progress, result, sel
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
             <div>
               <p className="text-xs font-black uppercase tracking-[0.18em] text-orange-500">Süreli tur</p>
-              <p className="text-sm font-bold text-orange-950">Süre bitene kadar soruları çöz.</p>
+              <p className="text-sm font-bold text-orange-950">Kademe arttıkça süre azalır; hızlı cevapla.</p>
             </div>
             <div className="flex flex-wrap items-center gap-2 text-sm font-black text-orange-950">
               <span className="rounded-full bg-white px-3 py-1">{timedSession.secondsLeft} sn</span>
@@ -1264,7 +1281,7 @@ function GamePanel({ challenge, exercise, onAnswer, phase, progress, result, sel
           </div>
           <p className="text-sm leading-6 text-slate-800">
             Doğru cevap: <strong>{challenge.answerText}</strong>
-            {result.leveledUp ? " · Seviye yükseldi." : ""}
+            {result.leveledUp ? " · Kademe yükseldi." : ""}
           </p>
         </div>
       ) : null}
@@ -1400,11 +1417,13 @@ function App() {
     const nextStreak = correct ? current.streak + 1 : 0;
     const leveledUp = correct && nextStreak >= LEVEL_UP_STREAK && current.level < MAX_LEVEL;
     const nextLevel = leveledUp ? current.level + 1 : current.level;
+    const nextSessionScore = timedSession.active ? timedSession.score + (correct ? 1 : 0) : current.bestScore;
     const nextProgress = {
       ...progress,
       [activeExercise.id]: {
         level: nextLevel,
         bestLevel: Math.max(current.bestLevel, nextLevel),
+        bestScore: Math.max(current.bestScore || 0, nextSessionScore),
         correct: current.correct + (correct ? 1 : 0),
         attempts: current.attempts + 1,
         streak: leveledUp ? 0 : nextStreak,
@@ -1431,7 +1450,14 @@ function App() {
   function resetCurrent() {
     const nextProgress = {
       ...progress,
-      [activeExercise.id]: { level: 1, bestLevel: progress[activeExercise.id].bestLevel, correct: 0, attempts: 0, streak: 0 },
+      [activeExercise.id]: {
+        level: 1,
+        bestLevel: progress[activeExercise.id].bestLevel,
+        bestScore: progress[activeExercise.id].bestScore || 0,
+        correct: 0,
+        attempts: 0,
+        streak: 0,
+      },
     };
     setProgress(nextProgress);
     startTimedSession(nextProgress, activeExercise.id);
@@ -1450,8 +1476,8 @@ function App() {
       <main className="min-h-screen bg-[#100b2b] text-white">
         <div className="mx-auto flex min-h-screen w-full max-w-6xl flex-col px-5 py-8 sm:px-8">
           <header className="mx-auto mb-8 max-w-xl text-center">
-            <div className="mx-auto mb-5 grid h-24 w-24 place-items-center rounded-full bg-orange-500 text-white shadow-2xl shadow-orange-500/30">
-              <Brain size={46} />
+            <div className="mx-auto mb-5 grid h-28 w-28 place-items-center overflow-hidden rounded-full bg-white p-2 shadow-2xl shadow-red-500/25 ring-4 ring-white/10">
+              <img alt="MG logo" className="h-full w-full rounded-full object-contain" src={LOGO_SRC} />
             </div>
             <h1 className="text-4xl font-black tracking-normal sm:text-5xl">Odak Akademisi</h1>
             <p className="mt-3 text-base font-bold text-white/55">{exercises.length} oyun · 4 kategori · Odaklanmayı geliştir</p>
@@ -1477,7 +1503,7 @@ function App() {
 
           <section className="mt-6 grid gap-3 rounded-[24px] border border-white/10 bg-white/5 p-4 sm:grid-cols-3">
             <div>
-              <span className="block text-xs font-bold text-white/45">Ortalama seviye</span>
+              <span className="block text-xs font-bold text-white/45">Ortalama kademe</span>
               <strong className="text-3xl font-black">{totals.averageLevel}</strong>
             </div>
             <div>
@@ -1570,7 +1596,7 @@ function App() {
               <strong className="text-2xl font-black">{activeProgress.streak}/{LEVEL_UP_STREAK}</strong>
             </div>
             <div className="rounded-[22px] border border-white/10 bg-white/10 p-4">
-              <span className="block text-xs font-bold text-white/45">Seviye</span>
+              <span className="block text-xs font-bold text-white/45">Kademe</span>
               <strong className="text-2xl font-black">{activeProgress.level}</strong>
             </div>
             <div className="rounded-[22px] border border-white/10 bg-white/10 p-4">
@@ -1653,7 +1679,7 @@ function App() {
           <div className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h2 className="text-lg font-black text-slate-950">{grade}. sınıf çalışma oturumu</h2>
-              <p className="mt-1 text-sm text-slate-500">Kısa görevler, hızlı geri bildirim ve kademeli seviye sistemi.</p>
+              <p className="mt-1 text-sm text-slate-500">Kısa görevler, hızlı geri bildirim ve kademeli zorluk sistemi.</p>
             </div>
             <button
               className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-200 px-3 text-sm font-bold text-slate-700 transition hover:bg-slate-50"
@@ -1688,7 +1714,7 @@ function App() {
                 <Target size={22} />
               </span>
               <h3 className="text-sm font-bold text-slate-950">Zorluk</h3>
-              <p className="mt-1 text-sm leading-6 text-slate-500">Seviye yükseldikçe sayı, şekil ve seçenek yoğunluğu artar.</p>
+              <p className="mt-1 text-sm leading-6 text-slate-500">Kademe yükseldikçe süre azalır; sayı, şekil ve seçenek yoğunluğu artar.</p>
             </div>
             <div className="rounded-lg border border-amber-200 bg-white p-4 shadow-sm">
               <span className="mb-3 grid h-10 w-10 place-items-center rounded-lg bg-amber-50 text-amber-700">
